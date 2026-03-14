@@ -1522,6 +1522,55 @@ encuestas.forEach(e => {
 });
 const media = { LLA:sL/sW, PJ:sP/sW, PRO:sPR/sW, PU:sPU/sW, FIT:sF/sW, OTROS:sO/sW };
 
+// ── PRIOR DE FUNDAMENTALS ─────────────────────────────────────────────────
+// Blendea el promedio ponderado de encuestas con un prior basado en variables
+// estructurales (aprobación presidencial, confianza del consumidor, actividad
+// económica). El peso de fundamentals decrece linealmente a 0 el día de la
+// elección — máximo 50% de peso a 1.000+ días del comicio.
+// Fuentes: ver docs/research/2026-03-14/06_datos_fundamentals.md
+
+function calcularPriorFundamentals() {
+    // ── Datos actualizados a marzo 2026 ── actualizar mensualmente ──
+    const baselineLLA = 40.84; // Resultado definitivo legislativas oct 2025
+    const aprobacion  = 39;    // Promedio consultoras mar 2026 (Opina/Pulso/AtlasIntel)
+    const icc         = 44.4;  // ICC Di Tella feb 2026 (escala 0-100, neutral≈50)
+    const emaeIa      = 3.5;   // EMAE variación interanual dic 2025 (INDEC)
+
+    // ── Ajustes marginales ──────────────────────────────────────────
+    const ajusteAprobacion = (aprobacion - 45) * 0.30; // umbral neutral: 45% → -1.8pp
+    const bonoIncumbencia  = 2.0;                      // titulares recuperan ~2pp vs leg.
+    const ajusteICC        = (icc - 40) * 0.20;        // umbral neutral: 40pts → +0.88pp
+    const ajusteEMAE       = (emaeIa - 3.0) * 0.15;   // umbral neutral: 3% ia → +0.08pp
+
+    const lla = baselineLLA + ajusteAprobacion + bonoIncumbencia + ajusteICC + ajusteEMAE;
+    return { lla: Math.max(30, Math.min(58, lla)) }; // ± 30-58% como límites razonables
+}
+
+// Fecha estimada de las elecciones generales 2027
+const ELECTION_DATE = new Date('2027-10-24');
+
+function blendPollsYFundamentals(mediaPure, prior) {
+    const diasParaEleccion = Math.max(0, Math.floor((ELECTION_DATE - new Date()) / 864e5));
+    // 50% peso fundamentals a ≥1000 días; decrece lineal hasta 0% el día de la elección
+    const pesoFund = Math.min(0.50, diasParaEleccion / 1000);
+    const pesoPoll = 1 - pesoFund;
+    return {
+        LLA:   mediaPure.LLA   * pesoPoll + prior.lla * pesoFund,
+        PJ:    mediaPure.PJ,   // sin modelo opositor calibrado por ahora
+        PRO:   mediaPure.PRO,
+        PU:    mediaPure.PU,
+        FIT:   mediaPure.FIT,
+        OTROS: mediaPure.OTROS,
+        _pesoFund: pesoFund,
+        _priorLLA: prior.lla,
+        _pollLLA:  mediaPure.LLA,
+        _dias:     diasParaEleccion
+    };
+}
+
+const fundamentalsPrior = calcularPriorFundamentals();
+const mediaBlend = blendPollsYFundamentals(media, fundamentalsPrior);
+
 // MONTE CARLO SIMULATION
 const SIM = 10000, SIGMA = 6.5; // σ calibrado al error histórico argentino (PASO 2023: 8-13pp)
 let winMilei1=0, winMileiBall=0, winKiciBall=0;
@@ -1536,8 +1585,8 @@ function randn() { let u=_rand()||1e-10, v=_rand(); return Math.sqrt(-2*Math.log
 const RHO = -0.7; // correlacion negativa LLA-PJ (suben juntos rara vez)
 for(let i=0;i<SIM;i++) {
     const z1=randn(), z2=randn();
-    let lla = media.LLA + z1*SIGMA;
-    let pj = media.PJ + (RHO*z1 + Math.sqrt(1-RHO*RHO)*z2)*SIGMA;
+    let lla = mediaBlend.LLA + z1*SIGMA;
+    let pj = mediaBlend.PJ + (RHO*z1 + Math.sqrt(1-RHO*RHO)*z2)*SIGMA;
     _sLLA+=lla; _sLLA2+=lla*lla;
     let diff = lla - pj;
     if(lla >= 45 || (lla >= 40 && diff > 10)) { winMilei1++; }
@@ -1583,17 +1632,23 @@ setTimeout(() => {
 
 // FIRST ROUND ANALYSIS — single coherent explanation
 const frEl = document.getElementById('firstRoundAnalysis');
-const mV0 = media.LLA, df0 = mV0 - media.PJ;
+const mV0 = mediaBlend.LLA, df0 = mV0 - mediaBlend.PJ;
 const art97 = mV0 >= 45;
 const art98 = mV0 >= 40 && df0 > 10;
 
+// Badge de ajuste por fundamentals
+const fundDiff = (mediaBlend.LLA - media.LLA);
+const fundSign = fundDiff >= 0 ? '+' : '';
+const fundPct  = (mediaBlend._pesoFund * 100).toFixed(0);
+const fundBadge = `<span title="Blend polls/fundamentals: ${fundPct}% peso fundamentals (prior: ${mediaBlend._priorLLA.toFixed(1)}% | encuestas: ${mediaBlend._pollLLA.toFixed(1)}%)" style="display:inline-block;margin-left:6px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;cursor:help;">fundamentals ${fundSign}${fundDiff.toFixed(1)}pp</span>`;
+
 let frHTML = '';
 if(art97) {
-    frHTML = `<strong style="color:var(--lla-color);">LLA ganaría en primera vuelta</strong> con una media ponderada del <strong>${mV0.toFixed(1)}%</strong>, superando directamente el umbral del 45% (Art. 97 de la Constitución). En el <strong>${pMilei1.toFixed(1)}%</strong> de las 10.000 simulaciones Monte Carlo, LLA obtiene victoria sin necesidad de ballotage.`;
+    frHTML = `<strong style="color:var(--lla-color);">LLA ganaría en primera vuelta</strong> con una estimación blended del <strong>${mV0.toFixed(1)}%</strong>${fundBadge}, superando directamente el umbral del 45% (Art. 97 de la Constitución). En el <strong>${pMilei1.toFixed(1)}%</strong> de las 10.000 simulaciones Monte Carlo, LLA obtiene victoria sin necesidad de ballotage.`;
 } else if(art98) {
-    frHTML = `La media ponderada de LLA es <strong style="color:var(--lla-color);">${mV0.toFixed(1)}%</strong>, que no alcanza el 45% necesario para ganar por Art. 97. Sin embargo, <strong>sí supera el 40%</strong> y la diferencia con el segundo (PJ, ${media.PJ.toFixed(1)}%) es de <strong>${df0.toFixed(1)} puntos</strong>, superior a los 10pp que exige el Art. 98. Esto significa que, sobre la media actual, <strong style="color:#C9A227;">se cumpliría la condición de victoria en primera vuelta por Art. 98</strong>. En las simulaciones Monte Carlo (con margen de error σ=3%), LLA evita el ballotage en el <strong>${pMilei1.toFixed(1)}%</strong> de los casos. En el <strong>${(100-pMilei1).toFixed(1)}%</strong> restante se va a segunda vuelta.`;
+    frHTML = `La estimación blended de LLA es <strong style="color:var(--lla-color);">${mV0.toFixed(1)}%</strong>${fundBadge}, que no alcanza el 45% necesario para ganar por Art. 97. Sin embargo, <strong>sí supera el 40%</strong> y la diferencia con el segundo (PJ, ${mediaBlend.PJ.toFixed(1)}%) es de <strong>${df0.toFixed(1)} puntos</strong>, superior a los 10pp que exige el Art. 98. Esto significa que, sobre la media actual, <strong style="color:#C9A227;">se cumpliría la condición de victoria en primera vuelta por Art. 98</strong>. En las simulaciones Monte Carlo (con margen de error σ=3%), LLA evita el ballotage en el <strong>${pMilei1.toFixed(1)}%</strong> de los casos. En el <strong>${(100-pMilei1).toFixed(1)}%</strong> restante se va a segunda vuelta.`;
 } else {
-    frHTML = `La media ponderada de LLA es <strong>${mV0.toFixed(1)}%</strong>. No alcanza el 45% (Art. 97) ni cumple la regla de 40%+10pp (Art. 98), con ${df0.toFixed(1)}pp de diferencia sobre PJ. <strong>El escenario más probable es un ballotage Milei vs. Kicillof.</strong> En las simulaciones Monte Carlo, LLA gana en 1ª vuelta solo en el ${pMilei1.toFixed(1)}% de los casos.`;
+    frHTML = `La estimación blended de LLA es <strong>${mV0.toFixed(1)}%</strong>${fundBadge}. No alcanza el 45% (Art. 97) ni cumple la regla de 40%+10pp (Art. 98), con ${df0.toFixed(1)}pp de diferencia sobre PJ. <strong>El escenario más probable es un ballotage Milei vs. Kicillof.</strong> En las simulaciones Monte Carlo, LLA gana en 1ª vuelta solo en el ${pMilei1.toFixed(1)}% de los casos.`;
 }
 frEl.innerHTML = frHTML;
 

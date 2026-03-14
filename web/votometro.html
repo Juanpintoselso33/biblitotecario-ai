@@ -510,6 +510,17 @@
                         </div>
                         <span class="card-badge" style="background: #D4EDDA; color: #155724; border-color: #C3E6CB;">Actualizado</span>
                     </div>
+                    <!-- ── BARRA DE INPUTS DEL MODELO ── -->
+                    <div id="fundamentalsBar" style="margin-bottom: 14px; padding: 9px 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); white-space: nowrap; margin-right: 4px;">Inputs del modelo →</span>
+                        <span id="fbar-aprobacion" style="font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; font-weight: 600; white-space: nowrap;"></span>
+                        <span id="fbar-icc"        style="font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; font-weight: 600; white-space: nowrap;"></span>
+                        <span id="fbar-emae"       style="font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; font-weight: 600; white-space: nowrap;"></span>
+                        <span style="color: var(--border-subtle); font-size: 14px; margin: 0 2px;">→</span>
+                        <span id="fbar-prior"      style="font-size: 11px; padding: 3px 9px; border-radius: 20px; background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-weight: 700; white-space: nowrap;"></span>
+                        <span id="fbar-blend"      style="font-size: 10px; color: var(--text-muted); margin-left: 4px; white-space: nowrap;"></span>
+                    </div>
+
                     <div class="results-grid">
                         <div class="chart-wrapper">
                             <canvas id="presChart"></canvas>
@@ -523,15 +534,6 @@
                     </div>
                     <!-- Analysis box -->
                     <div id="firstRoundAnalysis" style="margin-top: 18px; padding: 18px 20px; background: var(--celeste-pale); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 14px; color: var(--text-secondary); line-height: 1.7;"></div>
-
-                    <!-- ── INDICADORES DE FUNDAMENTALS ── -->
-                    <div id="fundamentalsCard" style="margin-top: 14px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px;">
-                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 12px;">
-                            Indicadores estructurales · Prior de fundamentals
-                        </div>
-                        <div id="fundamentalsIndicators" style="display: flex; gap: 12px; flex-wrap: wrap;"></div>
-                        <div id="fundamentalsBlendNote" style="margin-top: 10px; font-size: 11px; color: var(--text-muted); line-height: 1.5;"></div>
-                    </div>
                 </section>
 
                 <!-- ========== VILLARRUEL COMO CANDIDATA — ISSUE #5 ========== -->
@@ -1661,75 +1663,11 @@ if(art97) {
 }
 frEl.innerHTML = frHTML;
 
-// ── RELLENAR CARD DE FUNDAMENTALS ─────────────────────────────────────────
-(function() {
-    const indEl = document.getElementById('fundamentalsIndicators');
-    const noteEl = document.getElementById('fundamentalsBlendNote');
-    if (!indEl || !noteEl) return;
-
-    // Datos de los indicadores (actualizar mensualmente junto con calcularPriorFundamentals)
-    const indicadores = [
-        {
-            label: 'Aprobación presidencial',
-            valor: '39%',
-            fuente: 'Opina Argentina / Pulso Research · mar 2026',
-            contexto: 'Promedio consultoras',
-            color: '#DC2626',
-            bg: '#FEF2F2',
-            border: '#FECACA',
-            icon: '📊'
-        },
-        {
-            label: 'ICC Di Tella',
-            valor: '44.4 pts',
-            fuente: 'Universidad Torcuato Di Tella · feb 2026',
-            contexto: 'Confianza del consumidor (neutral = 50)',
-            color: '#D97706',
-            bg: '#FFFBEB',
-            border: '#FDE68A',
-            icon: '📈'
-        },
-        {
-            label: 'EMAE (actividad económica)',
-            valor: '+3.5% ia',
-            fuente: 'INDEC · dic 2025',
-            contexto: 'Variación interanual',
-            color: '#16A34A',
-            bg: '#F0FDF4',
-            border: '#BBF7D0',
-            icon: '⚡'
-        },
-        {
-            label: 'Prior fundamentals LLA',
-            valor: fundamentalsPrior.lla.toFixed(1) + '%',
-            fuente: 'Baseline: 40.84% (leg. oct 2025)',
-            contexto: 'Ajuste: aprobación −1.8pp · incumbencia +2pp · ICC +0.9pp · EMAE +0.1pp',
-            color: '#1D4ED8',
-            bg: '#EFF6FF',
-            border: '#BFDBFE',
-            icon: '🎯'
-        },
-    ];
-
-    indEl.innerHTML = indicadores.map(ind => `
-        <div style="flex:1;min-width:160px;padding:12px 14px;background:${ind.bg};border:1px solid ${ind.border};border-radius:8px;">
-            <div style="font-size:11px;color:${ind.color};font-weight:700;margin-bottom:4px;">${ind.icon} ${ind.label}</div>
-            <div style="font-size:20px;font-weight:700;color:${ind.color};line-height:1.2;">${ind.valor}</div>
-            <div style="font-size:10px;color:#6B7280;margin-top:4px;line-height:1.4;">${ind.contexto}</div>
-            <div style="font-size:9px;color:#9CA3AF;margin-top:3px;">${ind.fuente}</div>
-        </div>
-    `).join('');
-
-    const diasP = mediaBlend._dias;
-    const pf = (mediaBlend._pesoFund * 100).toFixed(0);
-    const pp = (100 - mediaBlend._pesoFund * 100).toFixed(0);
-    noteEl.innerHTML = `<strong>Blend aplicado:</strong> ${pf}% fundamentals + ${pp}% encuestas (a ${diasP} días de la elección). El peso de fundamentals decrece linealmente hasta 0% el día del comicio. <a href="https://github.com/Juanpintoselso33/biblitotecario-ai" target="_blank" rel="noopener" style="color:#1D4ED8;">Ver metodología completa →</a>`;
-})();
 
 // PRESIDENTIAL TABLE & CHART
 const presData = [
-    { space:'La Libertad Avanza', short:'LLA', candidate:'Javier Milei', vote:media.LLA, vote2023:29.99, vote2025:40.66, color:colors.LLA },
-    { space:'Peronismo/UxP', short:'PJ', candidate:'Axel Kicillof', vote:media.PJ, vote2023:27.27, vote2025:31.70, color:colors.PJ },
+    { space:'La Libertad Avanza', short:'LLA', candidate:'Javier Milei', vote:mediaBlend.LLA, vote2023:29.99, vote2025:40.66, color:colors.LLA },
+    { space:'Peronismo/UxP', short:'PJ', candidate:'Axel Kicillof', vote:mediaBlend.PJ, vote2023:27.27, vote2025:31.70, color:colors.PJ },
     { space:'PRO', short:'PRO', candidate:'Bullrich/Macri', vote:media.PRO, vote2023:16.93, vote2025:0, color:colors.PRO },
     { space:'Provincias Unidas', short:'PU', candidate:'Llaryora/Pullaro', vote:media.PU, vote2023:3.85, vote2025:8.0, color:colors.PU },
     { space:'FIT-Unidad', short:'FIT', candidate:'Del Caño', vote:media.FIT, vote2023:2.70, vote2025:3.5, color:colors.FIT },
@@ -1742,9 +1680,28 @@ presData.forEach(r => {
     let cls='change-neutral',txt='=';
     if(ch>0.5){ cls='change-positive'; txt=`+${ch.toFixed(1)}`; }
     else if(ch<-0.5){ cls='change-negative'; txt=ch.toFixed(1); }
-    const ciTag = r.short==='LLA'?`<span style="font-size:10px;color:var(--text-muted);font-weight:400;"> ±${_ciLLA.toFixed(1)}pp</span>`:''; 
+    let ciTag = '';
+    if (r.short === 'LLA') {
+        const pollRaw = media.LLA.toFixed(1);
+        const blended = mediaBlend.LLA.toFixed(1);
+        const adjSign = (mediaBlend.LLA - media.LLA) >= 0 ? '+' : '';
+        const adjVal  = (mediaBlend.LLA - media.LLA).toFixed(1);
+        ciTag = `<span style="font-size:10px;color:var(--text-muted);font-weight:400;"> ±${_ciLLA.toFixed(1)}pp</span>`
+              + `<div style="font-size:9px;color:#1D4ED8;margin-top:2px;" title="Encuestas: ${pollRaw}% · Prior fundamentals: ${fundamentalsPrior.lla.toFixed(1)}% · Ajuste: ${adjSign}${adjVal}pp">blend: enc. ${pollRaw}% ${adjSign}${adjVal}pp</div>`;
+    }
     ptb.innerHTML += `<tr><td><div class="party-cell"><span class="party-dot" style="background:${r.color};"></span><div><span class="party-name">${r.short}</span><div style="font-size:11px;color:var(--text-muted);">${r.candidate}</div></div></div></td><td class="vote-cell">${r.vote.toFixed(1)}%${ciTag}</td><td class="${cls}">${txt}</td></tr>`;
 });
+
+// Rellenar barra de inputs del modelo
+(function() {
+    const dias = mediaBlend._dias;
+    const pf   = (mediaBlend._pesoFund * 100).toFixed(0);
+    document.getElementById('fbar-aprobacion').textContent = `📊 Aprobación 39%`;
+    document.getElementById('fbar-icc').textContent        = `📈 ICC 44.4 pts`;
+    document.getElementById('fbar-emae').textContent       = `⚡ EMAE +3.5% ia`;
+    document.getElementById('fbar-prior').textContent      = `🎯 Prior LLA ${fundamentalsPrior.lla.toFixed(1)}%`;
+    document.getElementById('fbar-blend').textContent      = `${pf}% fund. + ${100-parseInt(pf)}% enc. · ${dias} días`;
+})();
 
 // (Analysis now in firstRoundAnalysis above)
 
@@ -2264,21 +2221,59 @@ new Chart(document.getElementById('temporalChart').getContext('2d'), {
 
 
 // Monte Carlo histograms
-function genHist(id, mean, sigma, color) {
+// vlines: array de { value, color, label } — dibuja líneas verticales anotadas
+function genHist(id, mean, sigma, color, vlines) {
     const canvas = document.getElementById(id); if(!canvas) return;
     const bins={}, bs=1;
     for(let i=0;i<10000;i++) { let v=mean+randn()*sigma; let b=Math.round(v/bs)*bs; bins[b]=(bins[b]||0)+1; }
     const sb=Object.keys(bins).map(Number).sort((a,b)=>a-b);
+    const vl = vlines || [];
     new Chart(canvas.getContext('2d'), {
-        type:'bar', data: { labels:sb.map(b=>b.toFixed(0)), datasets:[{ data:sb.map(b=>bins[b]/100), backgroundColor:sb.map(b=>Math.abs(b-mean)<0.5?'#C9A227':color+'88'), borderWidth:0, borderRadius:2 }] },
-        options: { responsive:true, maintainAspectRatio:false,
+        type:'bar',
+        data: { labels:sb.map(b=>b.toFixed(0)), datasets:[{ data:sb.map(b=>bins[b]/100), backgroundColor:sb.map(b=>Math.abs(b-mean)<0.5?'#C9A227':color+'88'), borderWidth:0, borderRadius:2 }] },
+        options: {
+            responsive:true, maintainAspectRatio:false,
             scales: { x:{ grid:{display:false}, ticks:{ color:'#8896AB', font:{size:8}, maxRotation:0, callback:(v,i)=>i%2===0?sb[i]+'%':'' } }, y:{ grid:{color:'#E8F4FD'}, ticks:{color:'#8896AB', font:{size:8}, callback:v=>v+'%'}, max:25 } },
-            plugins: { legend:{display:false} }
-        }
+            plugins: { legend:{display:false}, _vlines: vl, _sb: sb }
+        },
+        plugins: [{
+            id: 'vlinePlugin',
+            afterDraw(chart) {
+                const vlines = chart.options.plugins._vlines;
+                const sb     = chart.options.plugins._sb;
+                if (!vlines || !vlines.length) return;
+                const ctx   = chart.ctx;
+                const xAxis = chart.scales.x;
+                const yAxis = chart.scales.y;
+                vlines.forEach(({value, color: vc, label: vl}) => {
+                    let idx = sb.findIndex(b => b >= value);
+                    if (idx < 0) idx = sb.length - 1;
+                    const x = xAxis.getPixelForIndex(idx);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x, yAxis.top);
+                    ctx.lineTo(x, yAxis.bottom);
+                    ctx.strokeStyle = vc;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 3]);
+                    ctx.stroke();
+                    if (vl) {
+                        ctx.fillStyle = vc;
+                        ctx.font = 'bold 8px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(vl, x, yAxis.top + 10);
+                    }
+                    ctx.restore();
+                });
+            }
+        }]
     });
 }
-genHist('histLLA',media.LLA,SIGMA,colors.LLA);
-document.getElementById('mcLLA').textContent = 'μ='+media.LLA.toFixed(1)+'% ±'+_ciLLA.toFixed(1)+'pp (IC90)';
+genHist('histLLA', mediaBlend.LLA, SIGMA, colors.LLA, [
+    { value: media.LLA,            color: '#6B7280', label: 'enc.' },
+    { value: fundamentalsPrior.lla, color: '#1D4ED8', label: 'prior' }
+]);
+document.getElementById('mcLLA').textContent = 'blend: '+mediaBlend.LLA.toFixed(1)+'% (enc. '+media.LLA.toFixed(1)+'% · prior '+fundamentalsPrior.lla.toFixed(1)+'%) ±'+_ciLLA.toFixed(1)+'pp';
 genHist('histPJ',media.PJ,SIGMA,colors.PJ);
 document.getElementById('mcPJ').textContent = 'μ='+media.PJ.toFixed(1)+'%';
 genHist('histPU',media.PU,2.0,colors.PU);

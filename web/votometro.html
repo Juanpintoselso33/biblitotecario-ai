@@ -991,7 +991,8 @@
 // ============================================================
 
 const colors = { LLA:'#7B3FE4', PJ:'#1E88E5', PRO:'#FFD600', UCR:'#E53935', FIT:'#C62828', PU:'#FF9800', HCF:'#43A047', OTROS:'#78909C' };
-const FECHA_REF = new Date(); // dinámica — ponderación se recalcula con el calendario real
+const FECHA_REF = new Date(); // dinámica — ponderación temporal recalculada en tiempo real
+const ULTIMA_ACTUALIZACION = new Date('2026-03-01'); // última encuesta agregada manualmente
 const LAMBDA = 0.015;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1346,7 +1347,7 @@ const encuestas = encuestasRaw.map(e => ({ ...e, peso: calcPeso(e).total, pesoIn
     .sort((a,b) => new Date(b.fecha)-new Date(a.fecha));
 
 document.getElementById('heroPolls').textContent = encuestas.length;
-const diasDesdeRef = Math.floor((new Date() - FECHA_REF) / 864e5);
+const diasDesdeRef = Math.floor((new Date() - ULTIMA_ACTUALIZACION) / 864e5);
 const actualizadoLabel = diasDesdeRef === 0 ? 'hoy' : `hace ${diasDesdeRef} días`;
 document.getElementById('pollsCount').textContent = `Ponderación quíntuple · ${encuestas.length} encuestas · Actualizado ${actualizadoLabel}`;
 
@@ -1488,18 +1489,17 @@ encuestas.forEach(e => {
     pollsBody.innerHTML += `<tr title="${tooltip}"><td><div style="font-weight:600;font-size:12px;">${e.consultora} <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad||'?'}</span> <span title="${tipoTitle}" style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${tipoBg};color:${tipoColor};border:1px solid ${tipoBd};cursor:help;">${tipoLbl}</span></div><div style="font-size:10px;color:var(--text-muted);">n=${e.muestra}</div></td><td style="font-size:12px;color:var(--text-muted);">${fs}</td><td style="font-weight:600;color:var(--lla-color);">${e.LLA.toFixed(1)}</td><td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td><td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div><span style="font-size:10px;color:var(--text-muted);">${(e.peso*100).toFixed(0)}%</span></td></tr>`;
 });
 
-// GIACOBBE CONCENTRATION WARNING
+// CONCENTRACIÓN POR CONSULTORA — info post-cap
 (function() {
-    const giacP = encuestas.filter(e => e.consultora === 'Giacobbe');
-    const totalW = encuestas.reduce((s,e)=>s+e.peso,0);
-    const giacW = giacP.reduce((s,e)=>s+e.peso,0);
-    const pct = totalW > 0 ? (giacW/totalW*100) : 0;
-    if (pct > 25) {
+    const allW = encuestas.reduce((s,e)=>s+e.peso,0);
+    const byC = {};
+    encuestas.forEach(e=>{ byC[e.consultora]=(byC[e.consultora]||0)+e.peso; });
+    const top = Object.entries(byC).sort((a,b)=>b[1]-a[1])[0];
+    if (top && (top[1]/allW*100) > 15) {
         const note = document.createElement('div');
-        note.style.cssText = 'font-size:11px;color:#92400E;background:#FEF3C7;border:1px solid #F59E0B;'+
-            'border-radius:6px;padding:8px 12px;margin-top:8px;';
-        note.innerHTML = '&#9888; <strong>Concentración Giacobbe: ' + pct.toFixed(0) + '%</strong> '+
-            'del peso total del modelo proviene de Giacobbe. Alta dependencia de una sola consultora.';
+        note.style.cssText = 'font-size:11px;color:#1D4ED8;background:#EFF6FF;border:1px solid #93C5FD;border-radius:6px;padding:8px 12px;margin-top:8px;';
+        note.innerHTML = '&#9432; Cap de peso activo: <strong>' + top[0] + '</strong> concentra el ' +
+            (top[1]/allW*100).toFixed(0) + '% del peso tras aplicar el límite del 20% por consultora.';
         const tbl = document.getElementById('pollsTableBody');
         if (tbl && tbl.parentElement) tbl.parentElement.parentElement.appendChild(note);
     }
@@ -1809,7 +1809,7 @@ districts.forEach(d => {
 })();
 
 // FOOTER
-document.getElementById('footerSources').innerHTML = `Actualizado: 1 de marzo de 2026 · Fuentes: Trends, CB Consultora, Poliarquía, Opina Argentina, QSocial, Giacobbe, Management & Fit, Atlas Intel, Synopsis, Opinaia, Escenarios, Isasi Burdman, DC Consultores, Zuban Córdoba, Proyección, Rubikon y otras · ${encuestas.length} encuestas`;
+document.getElementById('footerSources').innerHTML = `Actualizado: ${ULTIMA_ACTUALIZACION.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})} · Fuentes: Trends, CB Consultora, Poliarquía, Opina Argentina, QSocial, Giacobbe, Management & Fit, Atlas Intel, Synopsis, Opinaia, Escenarios, Isasi Burdman, DC Consultores, Zuban Córdoba, Proyección, Rubikon y otras · ${encuestas.length} encuestas`;
 
 // ---- CHARTS ----
 const chartFont = { family: "'DM Sans', sans-serif" };

@@ -2245,10 +2245,14 @@ function genHist(id, mean, sigma, color, vlines) {
                 const ctx   = chart.ctx;
                 const xAxis = chart.scales.x;
                 const yAxis = chart.scales.y;
+                const meta  = chart.getDatasetMeta(0);
                 vlines.forEach(({value, color: vc, label: vl}) => {
                     let idx = sb.findIndex(b => b >= value);
                     if (idx < 0) idx = sb.length - 1;
-                    const x = xAxis.getPixelForIndex(idx);
+                    // Usar posición del bar en el meta — compatible con Chart.js v3/v4
+                    const bar = meta.data[idx];
+                    if (!bar) return;
+                    const x = bar.x;
                     ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(x, yAxis.top);

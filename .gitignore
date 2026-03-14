@@ -10,3 +10,28 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Node
+node_modules/
+package-lock.json
+
+# Scripts utilitarios temporales (playwright, audits)
+analyze_design.js
+audit.js
+check_fund.js
+check_layout.js
+check_page.js
+screenshot.js
+screenshot2.js
+screenshot3.js
+screenshot4.js
+verify.js
+verify2.js
+verify3.js
+verify4.js
+zoom_s1.js
+
+# Output generado en runtime
+output/*.png
+output/main_script.js
+output/review_screenshots/

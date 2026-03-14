@@ -1,0 +1,12 @@
+# OneDrive temp files
+*.tmp
+~$*
+desktop.ini
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store

@@ -870,6 +870,55 @@
                             <p class="card-subtitle" id="pollsCount">Ponderación quíntuple</p>
                         </div>
                     </div>
+                    <div id="polls-divergence-badge" style="margin-bottom:12px;"></div>
+                    <div id="polls-filter-panel" style="
+                        display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+                        padding:12px 14px; margin-bottom:14px;
+                        background:var(--bg-secondary); border:1px solid var(--border-subtle);
+                        border-radius:10px;
+                    ">
+                        <!-- Calidad -->
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-size:10px;font-weight:700;text-transform:uppercase;
+                                letter-spacing:.8px;color:var(--text-muted);">Calidad</span>
+                            <div style="display:flex;gap:4px;">
+                                <button class="pf-btn pf-active" data-filter="calidad" data-val="todas"
+                                    onclick="pollsFilter('calidad','todas',this)">Todas</button>
+                                <button class="pf-btn" data-filter="calidad" data-val="A"
+                                    onclick="pollsFilter('calidad','A',this)">Solo A</button>
+                                <button class="pf-btn" data-filter="calidad" data-val="AB"
+                                    onclick="pollsFilter('calidad','AB',this)">Solo A+B</button>
+                            </div>
+                        </div>
+                        <!-- Período -->
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-size:10px;font-weight:700;text-transform:uppercase;
+                                letter-spacing:.8px;color:var(--text-muted);">Período</span>
+                            <div style="display:flex;gap:4px;">
+                                <button class="pf-btn pf-active" data-filter="periodo" data-val="todos"
+                                    onclick="pollsFilter('periodo','todos',this)">Todos</button>
+                                <button class="pf-btn" data-filter="periodo" data-val="30"
+                                    onclick="pollsFilter('periodo','30',this)">Últ. 30d</button>
+                                <button class="pf-btn" data-filter="periodo" data-val="60"
+                                    onclick="pollsFilter('periodo','60',this)">Últ. 60d</button>
+                                <button class="pf-btn" data-filter="periodo" data-val="90"
+                                    onclick="pollsFilter('periodo','90',this)">Últ. 90d</button>
+                            </div>
+                        </div>
+                        <!-- Tipo -->
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-size:10px;font-weight:700;text-transform:uppercase;
+                                letter-spacing:.8px;color:var(--text-muted);">Tipo</span>
+                            <div style="display:flex;gap:4px;">
+                                <button class="pf-btn pf-active" data-filter="tipo" data-val="todos"
+                                    onclick="pollsFilter('tipo','todos',this)">Todos</button>
+                                <button class="pf-btn" data-filter="tipo" data-val="espacio"
+                                    onclick="pollsFilter('tipo','espacio',this)">Espacio</button>
+                                <button class="pf-btn" data-filter="tipo" data-val="candidato"
+                                    onclick="pollsFilter('tipo','candidato',this)">Candidato</button>
+                            </div>
+                        </div>
+                    </div>
                     <div style="overflow-x: auto; max-height: 650px; overflow-y: auto;">
                         <table class="polls-table">
                             <thead><tr><th>Consultora</th><th>Fecha</th><th>LLA</th><th>PJ</th><th>Peso</th></tr></thead>
@@ -1488,6 +1537,121 @@ encuestas.forEach(e => {
     const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.wT.toFixed(3)} × Calidad: ${pi.wC.toFixed(2)} × Sesgo: ${pi.wS.toFixed(2)} × Medio: ${pi.wM.toFixed(2)} × Metodología: ${pi.wMe.toFixed(2)}\nPeso total: ${(e.peso*100).toFixed(1)}%`;
     pollsBody.innerHTML += `<tr title="${tooltip}"><td><div style="font-weight:600;font-size:12px;">${e.consultora} <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad||'?'}</span> <span title="${tipoTitle}" style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${tipoBg};color:${tipoColor};border:1px solid ${tipoBd};cursor:help;">${tipoLbl}</span></div><div style="font-size:10px;color:var(--text-muted);">n=${e.muestra}</div></td><td style="font-size:12px;color:var(--text-muted);">${fs}</td><td style="font-weight:600;color:var(--lla-color);">${e.LLA.toFixed(1)}</td><td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td><td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div><span style="font-size:10px;color:var(--text-muted);">${(e.peso*100).toFixed(0)}%</span></td></tr>`;
 });
+
+// ── ISSUE #6: Filter state & re-render ─────────────────────────────────
+(function() {
+    // Inject pill button CSS once
+    const pfStyle = document.createElement('style');
+    pfStyle.textContent = `
+        .pf-btn {
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+        .pf-btn:hover:not(.pf-active) {
+            border-color: #7c3aed;
+            color: #7c3aed;
+        }
+        .pf-btn.pf-active {
+            background: #7c3aed;
+            border-color: #7c3aed;
+            color: #ffffff;
+        }
+    `;
+    document.head.appendChild(pfStyle);
+
+    // Filter state
+    const pfState = { calidad: 'todas', periodo: 'todos', tipo: 'todos' };
+
+    // Render only the table rows based on current filter state
+    function renderFilteredRows() {
+        const now = new Date();
+        const body = document.getElementById('pollsTableBody');
+        const maxP = Math.max(...encuestas.map(e => e.peso));
+        let filtered = encuestas.filter(e => {
+            // Calidad filter
+            if (pfState.calidad === 'A' && e.calidad !== 'A') return false;
+            if (pfState.calidad === 'AB' && e.calidad !== 'A' && e.calidad !== 'B') return false;
+            // Período filter
+            if (pfState.periodo !== 'todos') {
+                const days = parseInt(pfState.periodo, 10);
+                const cutoff = new Date(now.getTime() - days * 86400000);
+                if (new Date(e.fecha) < cutoff) return false;
+            }
+            // Tipo filter
+            if (pfState.tipo !== 'todos' && e.tipo !== pfState.tipo) return false;
+            return true;
+        });
+        body.innerHTML = filtered.map(e => {
+            const f = new Date(e.fecha);
+            const fs = f.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: '2-digit' });
+            const pp = (e.peso / maxP * 100).toFixed(0);
+            const badgeColor = e.calidad === 'A' ? '#16A34A' : e.calidad === 'B' ? '#D97706' : '#6B7280';
+            const badgeBg   = e.calidad === 'A' ? '#F0FDF4' : e.calidad === 'B' ? '#FFFBEB' : '#F3F4F6';
+            const tipoColor = e.tipo === 'candidato' ? '#92400E' : '#1D4ED8';
+            const tipoBg    = e.tipo === 'candidato' ? '#FEF3C7' : '#EFF6FF';
+            const tipoBd    = e.tipo === 'candidato' ? '#F59E0B44' : '#93C5FD44';
+            const tipoLbl   = e.tipo === 'candidato' ? 'C' : 'E';
+            const tipoTitle = e.tipo === 'candidato'
+                ? 'Encuesta por candidato (incluye Villarruel)'
+                : 'Encuesta por espacio (LLA como partido)';
+            const pi = e.pesoInfo;
+            const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.wT.toFixed(3)} × Calidad: ${pi.wC.toFixed(2)} × Sesgo: ${pi.wS.toFixed(2)} × Medio: ${pi.wM.toFixed(2)} × Metodología: ${pi.wMe.toFixed(2)}\nPeso total: ${(e.peso * 100).toFixed(1)}%`;
+            return `<tr title="${tooltip}">`
+                + `<td><div style="font-weight:600;font-size:12px;">${e.consultora}`
+                + ` <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad || '?'}</span>`
+                + ` <span title="${tipoTitle}" style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${tipoBg};color:${tipoColor};border:1px solid ${tipoBd};cursor:help;">${tipoLbl}</span>`
+                + `</div><div style="font-size:10px;color:var(--text-muted);">n=${e.muestra}</div></td>`
+                + `<td style="font-size:12px;color:var(--text-muted);">${fs}</td>`
+                + `<td style="font-weight:600;color:var(--lla-color);">${e.LLA.toFixed(1)}</td>`
+                + `<td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td>`
+                + `<td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div>`
+                + `<span style="font-size:10px;color:var(--text-muted);">${(e.peso * 100).toFixed(0)}%</span></td>`
+                + `</tr>`;
+        }).join('');
+    }
+
+    // Expose globally so onclick handlers can call it
+    window.pollsFilter = function(dimension, val, btnEl) {
+        pfState[dimension] = val;
+        // Toggle active class within the button group
+        const group = btnEl.parentElement;
+        group.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('pf-active'));
+        btnEl.classList.add('pf-active');
+        renderFilteredRows();
+    };
+
+    // ── ISSUE #7: Divergence badge ──────────────────────────────────────
+    (function renderDivergenceBadge() {
+        const last6 = encuestas.slice(0, 6);
+        if (last6.length < 2) return;
+        const llaVals = last6.map(e => e.LLA);
+        const range = Math.round((Math.max(...llaVals) - Math.min(...llaVals)) * 10) / 10;
+        const highDispersion = range > 8;
+        const badge = document.getElementById('polls-divergence-badge');
+        if (!badge) return;
+        badge.innerHTML = `<span style="
+            display:inline-flex; align-items:center; gap:6px;
+            padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600;
+            background:${highDispersion ? '#854d0e22' : '#14532d22'};
+            color:${highDispersion ? '#ca8a04' : '#16a34a'};
+            border:1px solid ${highDispersion ? '#ca8a0444' : '#16a34a44'};
+        ">${highDispersion ? '⚠ Alta dispersión' : '✓ Baja dispersión'}: ${range}pp entre consultoras (últimas 6)</span>`;
+    })();
+
+    // Run initial render (replaces the static forEach above for filter support)
+    // The initial full render was already done by the forEach loop above;
+    // this IIFE only sets up re-render logic for subsequent filter clicks.
+    // We re-render now so the rows are managed by renderFilteredRows from the start.
+    renderFilteredRows();
+})();
 
 // CONCENTRACIÓN POR CONSULTORA — info post-cap
 (function() {

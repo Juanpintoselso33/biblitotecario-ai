@@ -582,8 +582,8 @@
                         <!-- Transfer explanation -->
                         <div style="padding: 14px; background: #F8F4FF; border: 1px solid #E8D5F5; border-radius: 10px;">
                             <div style="font-size:11px;color:#6B3FA0;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px;">Transferencia de votos en 2ª vuelta</div>
-                            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Los votantes de PRO, UCR y Provincias Unidas se redistribuyen. Según encuestas de 2ª vuelta confirmadas por 3 consultoras (Trends ene. 2026: 49%/35%; Opinaia ene. 2026: 50%/30%; Trends nov. 2025: 50%/38%): <strong style="color:var(--lla-color);">Milei ~49-50%</strong> vs <strong style="color:var(--peronismo-color);">Kicillof ~35-38%</strong>. Blanco/nulo ~9%, NS/NC ~5%. La diferencia de 12-19pp refleja la alta transferencia de votos anti-K de PRO (~85%), Provincias Unidas (~75%) y FIT (~25%) hacia LLA — patrón observado en ballotage 2023.</div>
-                            <div style="font-size:11px;color:#92400E;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:8px 12px;margin-top:8px;">&#9888; Escenario de ballotage · Valores promediados de 3 encuestas de 2ª vuelta (Trends ene-2026: 49%/35%; Opinaia ene-2026: 50%/30%; Trends nov-2025: 50%/38%). Consistentes entre sí, sujetos a cambio con la campaña 2027.</div>
+                            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Los votantes de PRO, UCR y Provincias Unidas se redistribuyen. Según encuestas de 2ª vuelta confirmadas por 4 mediciones (Trends ene-2026: 49%/35%; Trends nov-2025: 50%/38%; Opinaia ene-2026: 50%/30%; Opinaia mar-2026: 50%/30%): <strong style="color:var(--lla-color);">Milei ~49-50%</strong> vs <strong style="color:var(--peronismo-color);">Kicillof ~35-38%</strong>. Blanco/nulo ~9%, NS/NC ~5%. La diferencia de 12-19pp refleja la alta transferencia de votos anti-K de PRO (~85%), Provincias Unidas (~75%) y FIT (~25%) hacia LLA — patrón observado en ballotage 2023.</div>
+                            <div style="font-size:11px;color:#92400E;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:8px 12px;margin-top:8px;">&#9888; Escenario de ballotage · Valores promediados de 3 encuestas de 2ª vuelta (Trends ene-2026: 49%/35%; Trends nov-2025: 50%/38%; Opinaia ene-2026: 50%/30%; Opinaia mar-2026: 50%/30%). Consistentes entre sí, sujetos a cambio con la campaña 2027.</div>
                         </div>
                     </div>
                 </section>
@@ -1008,7 +1008,7 @@ const CALIDAD = {
     'CB Consultora':1.10, // CATI+presencial, n=1500-2500, calibrada en 2025
     'CB Global Data':1.10,// Misma firma CB; n=2588, candidato, feb-2026
     'Zuban Córdoba':1.05, // Reconocida, metodología rigurosa
-    'Management & Fit':0.80,// Error -13.3pp LLA PASO 2023: el mayor registrado entre consultoras
+    'Management & Fit':0.90,// PASO 2023: -13pp; pero leg.2025: +0.24pp (casi exacto). Mejora metodologica post-2023
     'Opina Argentina':1.00,
     'Trends':0.95,        // Joven, metodología mixta, crece en track record
     'Opinaia':0.95,       // Online pionera, muy activa, calibrada CABA
@@ -1028,7 +1028,7 @@ const SESGO = {
     'CB Consultora':1.02, // Leve sesgo anti-LLA en candidato, neutro espacio
     'CB Global Data':1.02,// Misma firma CB, mismo perfil de sesgo
     'Zuban Córdoba':1.00, // Neutro, financiado por oposición en algunos casos
-    'Management & Fit':0.85,// -13.3pp LLA en PASO 2023; subestima LLA sistemáticamente
+    'Management & Fit':0.92,// PASO 2023: -13pp; leg.2025: +0.24pp exacto. Mejora evidente
     'Opina Argentina':1.00,
     'Trends':0.95,        // Históricamente subestimó LLA en 2025
     'Opinaia':1.00,

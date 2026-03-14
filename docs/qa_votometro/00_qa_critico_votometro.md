@@ -1,6 +1,27 @@
 # Q&A Crítico — Votómetro Argentina 2027
 **Para llevar a Luis y al equipo de España — semana del 23 de marzo de 2026**
-**Generado:** 14 de marzo de 2026
+**Generado:** 14 de marzo de 2026 | **Actualizado:** 14 de marzo de 2026 (sesión mar-2026)
+
+---
+
+## Estado rápido por pregunta — marzo 2026
+
+| # | Pregunta | Estado |
+|---|----------|--------|
+| Q1 | 55% de datos son imputaciones, no encuestas reales | ❌ Pendiente |
+| Q2 | Diferencia entre preguntas de espacio vs candidato | ⚠️ Parcial |
+| Q3 | Concentración Giacobbe (27% del dataset) | ⚠️ Parcial |
+| Q4 | σ=3% vs error histórico de 8-13pp | ✅ Resuelto |
+| Q5 | LLA y PJ simulados como variables independientes | ✅ Resuelto |
+| Q6 | Probabilidades cambian en cada recarga (sin semilla) | ✅ Resuelto |
+| Q7 | Parámetros ballotage hardcodeados (49+randn()*4) | ❌ Pendiente |
+| Q8 | Solo escenario Milei vs Kicillof en segunda vuelta | ❌ Pendiente |
+| Q9 | Sin backtest formal contra PASO 2023 / legislativas 2025 | ❌ Pendiente |
+| Q10 | Pipeline de actualización — datos siguen hardcodeados | ❌ Pendiente |
+| Q11 | Propuesta de valor diferencial vs Chequeado / Infobae | ❌ Pendiente |
+| Q12 | Propiedad y custodia del dataset (CIGOB vs Redlines) | ❌ Pendiente |
+| Q13 | Producto público vs herramienta interna | ❌ Pendiente |
+| Q14 | Prior de fundamentals — nueva capacidad | ✅ Nuevo / Resuelto |
 
 ---
 
@@ -36,6 +57,8 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 **Respuesta esperada:** O se armoniza explícitamente (corrección por tipo de pregunta) o se documenta la incertidumbre adicional que esto agrega.
 
+> **Estado (mar 2026): PARCIALMENTE RESUELTO.** Se implementó un ajuste explícito: `CAND_ADJ_LLA = 4pp` y `CAND_ADJ_PJ = 2pp`. Las encuestas que preguntan por candidato son normalizadas al marco de espacio antes de agregarse. El ajuste es un valor fijo basado en el diferencial documentado de 2023 — no es un modelo dinámico. Queda pendiente validar ese diferencial contra datos de 2025-2026 y convertirlo en una distribución probabilística en lugar de un escalar fijo.
+
 ---
 
 ### Q3: ¿Por qué Giacobbe tiene 26 de las 96 observaciones (27%)?
@@ -46,6 +69,8 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 **Por qué importa:** La sobrerepresentación de una consultora en un agregador es un riesgo conocido. El rating de FiveThirtyEight penaliza explícitamente la concentración de una sola fuente. En Argentina, el "efecto de casa" (house effect) de Giacobbe vs Poliarquía difiere históricamente en ~4-5 puntos en favor de LLA.
 
 **Respuesta esperada:** El decaimiento temporal (λ=0.015) reduce el peso de encuestas antiguas, pero no corrige el sesgo sistemático de la consultora. La solución correcta es estimar y restar el house effect antes de agregar.
+
+> **Estado (mar 2026): PARCIALMENTE RESUELTO.** Se implementó un cap de 20% de peso total por consultora. Esto limita la influencia máxima de Giacobbe independientemente de la cantidad de encuestas que aporte. El house effect sistemático (sesgo direccional de Giacobbe hacia LLA) sigue sin corregirse — el cap reduce la sobrerepresentación cuantitativa pero no elimina el sesgo cualitativo. La solución completa requiere estimar y restar el house effect en el modelo bayesiano jerárquico.
 
 ---
 
@@ -60,7 +85,7 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 **Literatura relevante:** Shirani-Mehr, Rothschild, Goel & Gelman (JASA 2018): "nonsampling error is, on average, about as large as sampling error in public polls." El error real en encuestas presidenciales es ~2x el error muestral nominal. Para Argentina, PASO 2023 demostró errores de hasta 13pp en LLA — debería usarse al menos σ=5-7%, posiblemente más.
 
-**Pregunta de seguimiento:** ¿Corrieron el modelo con σ=8% para ver cómo cambian las probabilidades de primera vuelta? Si con σ=3 la probabilidad de primera vuelta es 25%, con σ=8 probablemente cae a 5-10%.
+> **Estado (mar 2026): RESUELTO.** `SIGMA` actualizado a `6.5` (línea ~1526 de `web/votometro.html`). El valor 6.5% es el promedio entre σ=5% (referencia The Economist para EE.UU.) y σ=8% (límite inferior del error PASO 2023 para LLA). La respuesta preparada para esta crítica está ahora sustentada en el valor implementado — ya no es una promesa de mejora futura.
 
 ---
 
@@ -73,7 +98,7 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 **Literatura relevante:** Gelman (2024) usa una caminata aleatoria multivariada (MVNS) con matriz de covarianza Σ entre estados o, en este caso, entre partidos. El modelo de The Economist usa correlación explícita entre espacios.
 
-**Respuesta esperada:** Mostrar que la suma LLA+PJ en las simulaciones tiene distribución razonable (no supera el 85-90% de los votos positivos típicos).
+> **Estado (mar 2026): RESUELTO.** Se implementó correlación `RHO = -0.7` en el loop del Monte Carlo. El código usa la descomposición de Cholesky para generar shocks correlacionados: `z1 * SIGMA` para LLA y `(RHO * z1 + sqrt(1 - RHO²) * z2) * SIGMA` para PJ. Esto elimina los escenarios físicamente imposibles de suma total >100%. El valor -0.7 es conservador respecto al -0.85 que muestran datos de 2023 — puede refinarse con el backtest.
 
 ---
 
@@ -84,7 +109,7 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 **Por qué importa:** Un modelo que da resultados distintos en cada ejecución no es reproducible ni auditable. Un periodista que recargue la página dos veces verá dos números distintos y cuestionará la seriedad del instrumento.
 
-**Solución técnica:** Fijar `Math.seedrandom(FECHA_REF)` o calcular el resultado en el servidor y servir el JSON. Costo de implementación: 2 horas.
+> **Estado (mar 2026): RESUELTO.** Se implementó el PRNG determinista `mulberry32` seedeado con `FECHA_REF`. Los resultados ahora son reproducibles por fecha de referencia: dos cargas con la misma `FECHA_REF` producen exactamente los mismos números. El seed cambia cuando se actualiza la fecha de referencia del modelo, lo que es el comportamiento correcto.
 
 ---
 
@@ -101,6 +126,8 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 **Respuesta esperada:** Construir una matriz de transferencia 4x2 (votos de PRO, FIT, PU y Otros → Milei/Kicillof en segunda vuelta), informada por encuestas post-PASO y datos históricos de 2023.
 
+**Estado (mar 2026): SIN CAMBIOS — sigue hardcodeado.**
+
 ---
 
 ### Q8: El modelo solo contempla el escenario Milei vs Kicillof. ¿Qué pasa con otros candidatos de segunda vuelta?
@@ -111,6 +138,8 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 **Por qué importa:** CB Consultora muestra a Villarruel con 5.2% que, en un escenario de fractura de LLA, podría impedir la victoria en primera vuelta de Milei. Sin modelar estos escenarios, el Votómetro sub-informa la complejidad real de 2027.
 
 **Respuesta esperada:** Al menos 3 escenarios de segunda vuelta: (A) Milei vs Kicillof, (B) Milei vs candidato PRO, (C) escenario de fractura LLA con Milei vs Villarruel.
+
+**Estado (mar 2026): SIN CAMBIOS — el panel de Villarruel fue eliminado del HTML por ser mala UX. No hay escenario alternativo de segunda vuelta actualmente. Queda pendiente diseñar una solución de UX que permita escenarios alternativos sin sobrecargar la interfaz.**
 
 ---
 
@@ -127,6 +156,8 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 **Respuesta esperada:** Mostrar un gráfico de "proyección retroactiva" para PASO 2023 con intervalos de confianza reales, y comparar cuánto del resultado real cae dentro del intervalo.
 
+**Estado (mar 2026): SIN CAMBIOS — no implementado.**
+
 ---
 
 ### Q10: ¿Qué mecanismo garantiza que los datos se actualicen? ¿Hay SLA?
@@ -137,6 +168,8 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 **Por qué importa:** Un agregador que no se actualiza pierde credibilidad más rápido que uno que no existe. La fecha más reciente en el dataset es 01-mar-2026 (con el dato de 13 días de antigüedad). Sin proceso de actualización, el instrumento muere.
 
 **Propuesta concreta:** Pipeline mínimo viable: CSV en GitHub → cron semanal → deploy automático. Costo estimado: 1 sprint de 2 semanas.
+
+**Estado (mar 2026): SIN CAMBIOS — los datos siguen hardcodeados en el HTML. Nota nueva: el proyecto SÍ tiene git y deploy automático desde GitHub Pages (rama main, carpeta `web/` como root). Esto simplifica el pipeline futuro: solo falta externalizar los datos a un CSV en el repo.**
 
 ---
 
@@ -169,22 +202,45 @@ Listar las dudas técnicas y metodológicas más incisivas del Votómetro para q
 
 ---
 
+## BLOQUE V-b — Nueva capacidad: Prior de Fundamentals
+
+### Q14: ¿Qué es el Prior de Fundamentals y cómo afecta las proyecciones?
+
+**Contexto:**
+> El Votómetro ahora incorpora un modelo de "fundamentals" — variables macroeconómicas e institucionales que predicen resultados electorales independientemente de las encuestas.
+
+**Cómo funciona:**
+- `calcularPriorFundamentals()` integra: aprobación presidencial (39%), ICC Di Tella (44.4 pts), EMAE +3.5% ia, y baseline de legislativas 2025 (40.84%)
+- El peso de los fundamentals decrece linealmente desde 50% (a 1000 días de la elección) hasta 0% el día de la elección
+- Visible en la UI como barra de inputs + histograma con líneas prior/encuestas superpuestas
+
+**Por qué importa positivamente:** Este es el único agregador en Argentina que usa un modelo de fundamentals explícito. FiveThirtyEight y The Economist hacen esto — CIGOB ahora está en esa liga. Es el argumento más fuerte para la reunión con España.
+
+**Preguntas pendientes sobre el prior:**
+- ¿Qué modelo liga aprobación presidencial + ICC + EMAE a intención de voto? ¿Regresión histórica sobre qué elecciones?
+- ¿El baseline de legislativas 2025 (40.84%) es directamente comparable con proyecciones presidenciales?
+- ¿Con qué frecuencia se actualizan las variables de fundamentals?
+
+---
+
 ## BLOQUE VI — Propuestas de robustecimiento (para el debate con España)
 
 Basadas en la literatura revisada (Gelman 2024, FiveThirtyEight, The Economist, NBER 2025):
 
-| # | Mejora | Impacto | Dificultad | Prioridad |
-|---|--------|---------|------------|-----------|
-| 1 | Aumentar σ a 6-8% basado en error histórico argentino | Corrige la subestimación de incertidumbre — el problema más grave | Baja (cambiar un parámetro) | **ALTA** |
-| 2 | Fijar semilla aleatoria (`Math.seedrandom`) | Reproducibilidad básica | Muy baja (1 línea) | **ALTA** |
-| 3 | Construir matriz de transferencia de votos para ballotage | Reemplaza los valores hardcodeados por modelo probabilístico | Media | **ALTA** |
-| 4 | Separar imputaciones de encuestas reales en la visualización | Transparencia metodológica | Baja | **MEDIA** |
-| 5 | Pipeline de actualización semanal (CSV → GitHub → deploy) | Sostenibilidad operativa | Media | **MEDIA** |
-| 6 | Corregir house effects (Giacobbe vs Poliarquía) con modelo bayesiano jerárquico | Eliminar sesgo de concentración de fuentes | Alta | **MEDIA** |
-| 7 | Agregar modelos de escenarios de segunda vuelta alternativos | Completitud analítica | Media | **BAJA** |
-| 8 | Backtest formal contra PASO 2023 con métricas (RMSE, Brier score) | Validación científica | Alta | **BAJA** |
-| 9 | Modelo de correlación LLA-PJ en Monte Carlo (MVNS) | Corrección técnica | Alta | **BAJA** |
-| 10 | Separar armonización espacio/candidato como variable explícita | Rigor metodológico avanzado | Alta | **BAJA** |
+| # | Mejora | Impacto | Dificultad | Prioridad | Estado |
+|---|--------|---------|------------|-----------|--------|
+| 1 | Aumentar σ a 6-8% basado en error histórico argentino | Corrige la subestimación de incertidumbre | Baja | **ALTA** | ✅ RESUELTO (σ=6.5%) |
+| 2 | Fijar semilla aleatoria (mulberry32) | Reproducibilidad básica | Muy baja | **ALTA** | ✅ RESUELTO |
+| 3 | Correlación LLA-PJ en Monte Carlo (RHO=-0.7) | Elimina escenarios imposibles | Alta | **ALTA** | ✅ RESUELTO |
+| 4 | Prior de fundamentals (macro + aprobación) | Ancla el modelo entre elecciones | Alta | **ALTA** | ✅ RESUELTO (nuevo) |
+| 5 | Armonización espacio/candidato (+4pp LLA, +2pp PJ) | Reduce sesgo de tipo de pregunta | Media | **MEDIA** | ⚠️ PARCIAL |
+| 6 | Cap 20% por consultora | Reduce sobrerepresentación Giacobbe | Baja | **MEDIA** | ⚠️ PARCIAL |
+| 7 | Separar imputaciones de encuestas reales en visualización | Transparencia metodológica | Baja | **MEDIA** | ❌ Pendiente |
+| 8 | Pipeline de actualización semanal (CSV → GitHub → deploy) | Sostenibilidad operativa | Media | **MEDIA** | ❌ Pendiente |
+| 9 | Construir matriz de transferencia para ballotage | Reemplaza valores hardcodeados | Media | **ALTA** | ❌ Pendiente |
+| 10 | Agregar escenarios alternativos de segunda vuelta | Completitud analítica | Media | **MEDIA** | ❌ Pendiente |
+| 11 | Backtest formal contra PASO 2023 con métricas (RMSE, Brier score) | Validación científica | Alta | **BAJA** | ❌ Pendiente |
+| 12 | House effects bayesianos (Giacobbe vs Poliarquía) | Eliminar sesgo de concentración | Alta | **MEDIA** | ❌ Pendiente |
 
 ---
 

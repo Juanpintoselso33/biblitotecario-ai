@@ -582,7 +582,7 @@
                         <!-- Transfer explanation -->
                         <div style="padding: 14px; background: #F8F4FF; border: 1px solid #E8D5F5; border-radius: 10px;">
                             <div style="font-size:11px;color:#6B3FA0;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px;">Transferencia de votos en 2ª vuelta</div>
-                            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Los votantes de PRO, UCR y Provincias Unidas se redistribuyen. Según encuestas de ballotage (Trends ene. 2026): <strong style="color:var(--lla-color);">Milei 49%</strong> vs <strong style="color:var(--peronismo-color);">Kicillof 35%</strong>. Blanco/nulo ~9%, NS/NC ~5%. La diferencia de 14pp refleja alta transferencia de votos anti-K hacia LLA.</div>
+                            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Los votantes de PRO, UCR y Provincias Unidas se redistribuyen. Según encuestas de 2ª vuelta confirmadas por 3 consultoras (Trends ene. 2026: 49%/35%; Opinaia ene. 2026: 50%/30%; Trends nov. 2025: 50%/38%): <strong style="color:var(--lla-color);">Milei ~49-50%</strong> vs <strong style="color:var(--peronismo-color);">Kicillof ~35-38%</strong>. Blanco/nulo ~9%, NS/NC ~5%. La diferencia de 12-19pp refleja la alta transferencia de votos anti-K de PRO (~85%), Provincias Unidas (~75%) y FIT (~25%) hacia LLA — patrón observado en ballotage 2023.</div>
                             <div style="font-size:11px;color:#92400E;background:#FEF3C7;border:1px solid #F59E0B;border-radius:6px;padding:8px 12px;margin-top:8px;">&#9888; Escenario de ballotage · Valores promediados de 3 encuestas de 2ª vuelta (Trends ene-2026: 49%/35%; Opinaia ene-2026: 50%/30%; Trends nov-2025: 50%/38%). Consistentes entre sí, sujetos a cambio con la campaña 2027.</div>
                         </div>
                     </div>
@@ -1004,10 +1004,11 @@ const LAMBDA = 0.015;
 // ─────────────────────────────────────────────────────────────────────────────
 const CALIDAD = {
     'Poliarquía':1.15,    // CATI presencial, n=1000+, track record sólido
-    'Giacobbe':1.10,      // Presencial+CATI, n=1800-2500, buena trayectoria
+    'Giacobbe':0.92,      // Subestima LLA históricamente: -11.2pp PASO 2023, -5pp leg.2025 (n=1800-2500)
     'CB Consultora':1.10, // CATI+presencial, n=1500-2500, calibrada en 2025
+    'CB Global Data':1.10,// Misma firma CB; n=2588, candidato, feb-2026
     'Zuban Córdoba':1.05, // Reconocida, metodología rigurosa
-    'Management & Fit':1.00,
+    'Management & Fit':0.80,// Error -13.3pp LLA PASO 2023: el mayor registrado entre consultoras
     'Opina Argentina':1.00,
     'Trends':0.95,        // Joven, metodología mixta, crece en track record
     'Opinaia':0.95,       // Online pionera, muy activa, calibrada CABA
@@ -1018,15 +1019,16 @@ const CALIDAD = {
     'Escenarios':0.85,    // Metodología no totalmente pública
     'Circuitos':0.90,     // IVR/CATI, buena muestra
     'Pulso Research':0.85,// Relativamente nueva
-    'Isasi Burdman':0.80, // Históricamente pro-oficialismo, grandes outliers
-    'DC Consultores':0.75,// Consistentemente outlier pro-LLA, descuento alto
+    'Isasi Burdman':0.55, // Error 24pp en margen PBA leg.2025; sesgo pro-oficialismo documentado
+    'DC Consultores':0.92,// Más precisa en leg.2025 (error +0.36pp); revaluación al alza
 };
 const SESGO = {
     'Poliarquía':1.00,    // Referencia neutra
-    'Giacobbe':0.97,      // Leve sesgo pro-LLA (director simpatizante confeso)
+    'Giacobbe':0.88,      // Subestima LLA: -11pp PASO 2023, -5pp leg.2025 (no es "pro-LLA" como se asumía)
     'CB Consultora':1.02, // Leve sesgo anti-LLA en candidato, neutro espacio
+    'CB Global Data':1.02,// Misma firma CB, mismo perfil de sesgo
     'Zuban Córdoba':1.00, // Neutro, financiado por oposición en algunos casos
-    'Management & Fit':0.98,
+    'Management & Fit':0.85,// -13.3pp LLA en PASO 2023; subestima LLA sistemáticamente
     'Opina Argentina':1.00,
     'Trends':0.95,        // Históricamente subestimó LLA en 2025
     'Opinaia':1.00,
@@ -1037,13 +1039,14 @@ const SESGO = {
     'Escenarios':0.97,
     'Circuitos':1.03,
     'Pulso Research':0.98,
-    'Isasi Burdman':0.85, // Outlier pro-LLA sistemático (+10-15pp)
-    'DC Consultores':0.82, // Outlier pro-LLA sistemático (+10-15pp)
+    'Isasi Burdman':0.68, // Error 24pp margen PBA leg.2025; sesgo pro-oficialismo extremo
+    'DC Consultores':0.93, // Más precisa en 2025; reducir descuento histórico
 };
 const MEDIO = {
     'Poliarquía':1.00,    // Di Tella/La Nación, independiente
     'Giacobbe':1.00,      // Independiente, clientes privados
     'CB Consultora':1.00, // Independiente, clientes privados
+    'CB Global Data':1.00,// Independiente, clientes privados
     'Zuban Córdoba':1.00, // Independiente
     'Management & Fit':0.98,
     'Opina Argentina':1.00,
@@ -1063,6 +1066,7 @@ const METODOLOGIA = {
     'Poliarquía':1.10,    // CATI aleatorio estratificado
     'Giacobbe':1.05,      // Presencial + CATI
     'CB Consultora':1.05, // CATI + presencial
+    'CB Global Data':1.05,// CATI + presencial (misma metodología)
     'Zuban Córdoba':1.15, // Mayor rigor metodológico documentado
     'Management & Fit':1.00, // CATI
     'Opina Argentina':0.95,  // CATI + online
@@ -1315,6 +1319,8 @@ const encuestasRaw = [
     // Giacobbe (estimado feb-26, publicado sem.1 mar): LLA ~42%
     // Poliarquía (ICG feb-26 ✓ = 2,38): intención apoyar reelección 41% → espacio ~41-42%
     { fecha:'2026-02-01', consultora:'CB Consultora',    LLA:36.0, PJ:25.0, PRO:7.0,  PU:5.0, FIT:4.0, OTROS:23.0, muestra:2400, tipo:'candidato', calidad:'B' },
+    // CB Global Data (10-15 feb, n=2588): candidato — Milei 35.7%, Kicillof 22.5%, PU 3.7%, FIT 4.2% — Clarín/iProfesional (A)
+    { fecha:'2026-02-13', consultora:'CB Global Data',   LLA:35.7, PJ:22.5, PRO:0.0,  PU:3.7, FIT:4.2, OTROS:33.9, muestra:2588, tipo:'candidato', calidad:'A' },
     { fecha:'2026-02-05', consultora:'Synopsis',         LLA:42.0, PJ:31.0, PRO:5.0,  PU:4.0, FIT:4.0, OTROS:14.0, muestra:1500, tipo:'espacio',   calidad:'B' },
     { fecha:'2026-02-12', consultora:'Giacobbe',         LLA:42.5, PJ:29.5, PRO:6.5,  PU:4.5, FIT:4.0, OTROS:13.0, muestra:1800, tipo:'espacio',   calidad:'B' },
     { fecha:'2026-02-15', consultora:'Management & Fit', LLA:41.0, PJ:30.5, PRO:6.0,  PU:4.5, FIT:4.0, OTROS:14.0, muestra:1500, tipo:'espacio',   calidad:'B' },

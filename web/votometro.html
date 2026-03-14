@@ -1165,6 +1165,7 @@ const CALIDAD = {
     'Pulso Research':0.85,// Relativamente nueva
     'Isasi Burdman':0.55, // Error 24pp en margen PBA leg.2025; sesgo pro-oficialismo documentado
     'DC Consultores':0.92,// Más precisa en leg.2025 (error +0.36pp); revaluación al alza
+    'Analogías':0.95,     // n=2691, probabilístico; primera vez en este modelo
 };
 const SESGO = {
     'Poliarquía':1.00,    // Referencia neutra
@@ -1185,6 +1186,7 @@ const SESGO = {
     'Pulso Research':0.98,
     'Isasi Burdman':0.68, // Error 24pp margen PBA leg.2025; sesgo pro-oficialismo extremo
     'DC Consultores':0.93, // Más precisa en 2025; reducir descuento histórico
+    'Analogías':1.00,     // Sin track record previo conocido; asumir neutro
 };
 const MEDIO = {
     'Poliarquía':1.00,    // Di Tella/La Nación, independiente
@@ -1205,6 +1207,7 @@ const MEDIO = {
     'Pulso Research':0.97,
     'Isasi Burdman':0.88, // Publicado principalmente en medios pro-gobierno
     'DC Consultores':0.88,
+    'Analogías':1.00,     // Independiente
 };
 const METODOLOGIA = {
     'Poliarquía':1.10,    // CATI aleatorio estratificado
@@ -1225,6 +1228,7 @@ const METODOLOGIA = {
     'Pulso Research':0.90,
     'Isasi Burdman':0.85, // Metodología menos documentada
     'DC Consultores':0.85,
+    'Analogías':1.00,     // CATI probabilístico, n=2691
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1470,6 +1474,8 @@ const encuestasRaw = [
     { fecha:'2026-02-15', consultora:'Management & Fit', LLA:41.0, PJ:30.5, PRO:6.0,  PU:4.5, FIT:4.0, OTROS:14.0, muestra:1500, tipo:'espacio',   calidad:'B', url:'https://www.managementfit.com.ar' },
     { fecha:'2026-02-20', consultora:'Poliarquía',       LLA:41.5, PJ:30.0, PRO:6.5,  PU:5.0, FIT:4.0, OTROS:13.0, muestra:1500, tipo:'espacio',   calidad:'B' },
     { fecha:'2026-02-24', consultora:'Trends',           LLA:43.0, PJ:31.0, PRO:5.0,  PU:4.5, FIT:3.5, OTROS:13.0, muestra:2000, tipo:'espacio',   calidad:'B', url:'https://www.trendsarg.com.ar' },
+    // Analogías (campo 20-23 feb, pub. ~1 mar): candidato — Milei 31.7%, Kicillof 27.9%, FIT 4.6%, Otros 12.3%, NsNc 23.6% (n=2691)
+    { fecha:'2026-02-23', consultora:'Analogías',        LLA:31.7, PJ:27.9, PRO:0.0,  PU:0.0, FIT:4.6, OTROS:35.8, muestra:2691, tipo:'candidato', calidad:'A', url:'https://www.analogias.com.ar' },
 
     // ── MAR 2026 ─────────────────────────────────────────────────────────────
     // Primer mes post-acuerdo FMI / nuevas medidas. Tendencia estable.

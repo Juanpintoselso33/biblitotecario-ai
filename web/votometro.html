@@ -991,7 +991,7 @@
 // ============================================================
 
 const colors = { LLA:'#7B3FE4', PJ:'#1E88E5', PRO:'#FFD600', UCR:'#E53935', FIT:'#C62828', PU:'#FF9800', HCF:'#43A047', OTROS:'#78909C' };
-const FECHA_REF = new Date('2026-03-01');
+const FECHA_REF = new Date(); // dinámica — ponderación se recalcula con el calendario real
 const LAMBDA = 0.015;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1350,18 +1350,36 @@ const diasDesdeRef = Math.floor((new Date() - FECHA_REF) / 864e5);
 const actualizadoLabel = diasDesdeRef === 0 ? 'hoy' : `hace ${diasDesdeRef} días`;
 document.getElementById('pollsCount').textContent = `Ponderación quíntuple · ${encuestas.length} encuestas · Actualizado ${actualizadoLabel}`;
 
-// WEIGHTED AVERAGE
+// CAP DE PESO POR CONSULTORA — máximo 20% del peso total (evita concentración de Giacobbe u otros)
+(function() {
+    const rawT = encuestas.reduce((s,e)=>s+e.peso,0);
+    const byC = {};
+    encuestas.forEach(e=>{ byC[e.consultora]=(byC[e.consultora]||0)+e.peso; });
+    const cap = rawT * 0.20;
+    encuestas.forEach(e=>{ if(byC[e.consultora]>cap) e.peso *= cap/byC[e.consultora]; });
+})();
+
+// WEIGHTED AVERAGE — corrección tipo candidato/espacio
+// Las encuestas 'candidato' incluyen a Villarruel como opción separada (~5pp),
+// reduciendo LLA vs. encuestas de 'espacio'. Se normalizan al marco espacio para comparabilidad.
+const CAND_ADJ_LLA = 4.0, CAND_ADJ_PJ = 2.0;
 let sW=0,sL=0,sP=0,sPR=0,sPU=0,sF=0,sO=0;
-encuestas.forEach(e => { sW+=e.peso; sL+=e.LLA*e.peso; sP+=e.PJ*e.peso; sPR+=e.PRO*e.peso; sPU+=e.PU*e.peso; sF+=e.FIT*e.peso; sO+=e.OTROS*e.peso; });
+encuestas.forEach(e => {
+    const adjL = e.tipo==='candidato'?CAND_ADJ_LLA:0;
+    const adjP = e.tipo==='candidato'?CAND_ADJ_PJ:0;
+    sW+=e.peso; sL+=(e.LLA+adjL)*e.peso; sP+=(e.PJ+adjP)*e.peso;
+    sPR+=e.PRO*e.peso; sPU+=e.PU*e.peso; sF+=e.FIT*e.peso; sO+=e.OTROS*e.peso;
+});
 const media = { LLA:sL/sW, PJ:sP/sW, PRO:sPR/sW, PU:sPU/sW, FIT:sF/sW, OTROS:sO/sW };
 
 // MONTE CARLO SIMULATION
 const SIM = 10000, SIGMA = 6.5; // σ calibrado al error histórico argentino (PASO 2023: 8-13pp)
 let winMilei1=0, winMileiBall=0, winKiciBall=0;
+let _sLLA=0,_sLLA2=0,_sBM=0,_sBK=0,_nBall=0; // acumuladores para IC y medias ballotage
 
 // Seeded PRNG (mulberry32) — resultados reproducibles por FECHA_REF
 function hashStr(s) { let h=0; for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;} return h>>>0; }
-let _rngState = hashStr(FECHA_REF);
+let _rngState = hashStr(`${FECHA_REF.getFullYear()}-${FECHA_REF.getMonth()}-${FECHA_REF.getDate()}`);
 function _rand() { let t=_rngState+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return((t^t>>>14)>>>0)/4294967296; }
 function randn() { let u=_rand()||1e-10, v=_rand(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 
@@ -1370,17 +1388,21 @@ for(let i=0;i<SIM;i++) {
     const z1=randn(), z2=randn();
     let lla = media.LLA + z1*SIGMA;
     let pj = media.PJ + (RHO*z1 + Math.sqrt(1-RHO*RHO)*z2)*SIGMA;
+    _sLLA+=lla; _sLLA2+=lla*lla;
     let diff = lla - pj;
     if(lla >= 45 || (lla >= 40 && diff > 10)) { winMilei1++; }
     else {
         let ballM = 49 + randn()*4;
         let ballK = 35 + randn()*4;
+        _sBM+=ballM; _sBK+=ballK; _nBall++;
         if(ballM > ballK) winMileiBall++; else winKiciBall++;
     }
 }
 const pMilei1 = (winMilei1/SIM*100);
 const pMileiBall = (winMileiBall/SIM*100);
 const pKiciBall = (winKiciBall/SIM*100);
+const _ciLLA = Math.sqrt(_sLLA2/SIM - (_sLLA/SIM)*(_sLLA/SIM)) * 1.645; // IC 90%
+const _avgBM = _nBall>0?_sBM/_nBall:49, _avgBK = _nBall>0?_sBK/_nBall:35;
 
 // Conditional probabilities: given that ballotage happens, who wins?
 const ballotageTotal = winMileiBall + winKiciBall;
@@ -1395,8 +1417,8 @@ document.getElementById('scBallKici').textContent = pKiciBallCond.toFixed(1)+'%'
 document.getElementById('scNoBallotage').textContent = (100 - pMilei1).toFixed(1)+'%';
 
 // Ballotage face-off vote numbers
-document.getElementById('ballMileiPct').textContent = '49.0%';
-document.getElementById('ballKiciPct').textContent = '35.0%';
+document.getElementById('ballMileiPct').textContent = _avgBM.toFixed(1)+'%';
+document.getElementById('ballKiciPct').textContent = _avgBK.toFixed(1)+'%';
 
 // Ballotage probability bar (conditional: given that ballotage happens)
 document.getElementById('barMileiTotalPct').textContent = pMileiBallCond.toFixed(1)+'%';
@@ -1441,7 +1463,8 @@ presData.forEach(r => {
     let cls='change-neutral',txt='=';
     if(ch>0.5){ cls='change-positive'; txt=`+${ch.toFixed(1)}`; }
     else if(ch<-0.5){ cls='change-negative'; txt=ch.toFixed(1); }
-    ptb.innerHTML += `<tr><td><div class="party-cell"><span class="party-dot" style="background:${r.color};"></span><div><span class="party-name">${r.short}</span><div style="font-size:11px;color:var(--text-muted);">${r.candidate}</div></div></div></td><td class="vote-cell">${r.vote.toFixed(1)}%</td><td class="${cls}">${txt}</td></tr>`;
+    const ciTag = r.short==='LLA'?`<span style="font-size:10px;color:var(--text-muted);font-weight:400;"> ±${_ciLLA.toFixed(1)}pp</span>`:''; 
+    ptb.innerHTML += `<tr><td><div class="party-cell"><span class="party-dot" style="background:${r.color};"></span><div><span class="party-name">${r.short}</span><div style="font-size:11px;color:var(--text-muted);">${r.candidate}</div></div></div></td><td class="vote-cell">${r.vote.toFixed(1)}%${ciTag}</td><td class="${cls}">${txt}</td></tr>`;
 });
 
 // (Analysis now in firstRoundAnalysis above)
@@ -1455,7 +1478,14 @@ encuestas.forEach(e => {
     const pp = (e.peso/maxP*100).toFixed(0);
     const badgeColor = e.calidad==='A'?'#16A34A':e.calidad==='B'?'#D97706':'#6B7280';
     const badgeBg = e.calidad==='A'?'#F0FDF4':e.calidad==='B'?'#FFFBEB':'#F3F4F6';
-    pollsBody.innerHTML += `<tr><td><div style="font-weight:600;font-size:12px;">${e.consultora} <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad||'?'}</span></div><div style="font-size:10px;color:var(--text-muted);">n=${e.muestra}</div></td><td style="font-size:12px;color:var(--text-muted);">${fs}</td><td style="font-weight:600;color:var(--lla-color);">${e.LLA.toFixed(1)}</td><td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td><td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div><span style="font-size:10px;color:var(--text-muted);">${(e.peso*100).toFixed(0)}%</span></td></tr>`;
+    const tipoColor = e.tipo==='candidato'?'#92400E':'#1D4ED8';
+    const tipoBg = e.tipo==='candidato'?'#FEF3C7':'#EFF6FF';
+    const tipoBd = e.tipo==='candidato'?'#F59E0B44':'#93C5FD44';
+    const tipoLbl = e.tipo==='candidato'?'C':'E';
+    const tipoTitle = e.tipo==='candidato'?'Encuesta por candidato (incluye Villarruel)':'Encuesta por espacio (LLA como partido)';
+    const pi = e.pesoInfo;
+    const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.wT.toFixed(3)} × Calidad: ${pi.wC.toFixed(2)} × Sesgo: ${pi.wS.toFixed(2)} × Medio: ${pi.wM.toFixed(2)} × Metodología: ${pi.wMe.toFixed(2)}\nPeso total: ${(e.peso*100).toFixed(1)}%`;
+    pollsBody.innerHTML += `<tr title="${tooltip}"><td><div style="font-weight:600;font-size:12px;">${e.consultora} <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad||'?'}</span> <span title="${tipoTitle}" style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${tipoBg};color:${tipoColor};border:1px solid ${tipoBd};cursor:help;">${tipoLbl}</span></div><div style="font-size:10px;color:var(--text-muted);">n=${e.muestra}</div></td><td style="font-size:12px;color:var(--text-muted);">${fs}</td><td style="font-weight:600;color:var(--lla-color);">${e.LLA.toFixed(1)}</td><td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td><td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div><span style="font-size:10px;color:var(--text-muted);">${(e.peso*100).toFixed(0)}%</span></td></tr>`;
 });
 
 // GIACOBBE CONCENTRATION WARNING
@@ -1854,7 +1884,7 @@ function genHist(id, mean, sigma, color) {
     });
 }
 genHist('histLLA',media.LLA,SIGMA,colors.LLA);
-document.getElementById('mcLLA').textContent = 'μ='+media.LLA.toFixed(1)+'%';
+document.getElementById('mcLLA').textContent = 'μ='+media.LLA.toFixed(1)+'% ±'+_ciLLA.toFixed(1)+'pp (IC90)';
 genHist('histPJ',media.PJ,SIGMA,colors.PJ);
 document.getElementById('mcPJ').textContent = 'μ='+media.PJ.toFixed(1)+'%';
 genHist('histPU',media.PU,2.0,colors.PU);

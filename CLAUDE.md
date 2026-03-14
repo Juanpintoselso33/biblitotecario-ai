@@ -41,17 +41,19 @@ output/    → Outputs generados: análisis, briefs, informes de reunión
 
 ---
 
-## El Votómetro (`web/remixed-71df43cf.html`)
+## El Votómetro (`web/votometro.html`)
 
 HTML estático puro, sin build. Colaboración CIGOB + Redlines Estrategia y Comunicación.
+Archivo activo: `web/votometro.html` (el `web/remixed-71df43cf.html` es la versión original archivada).
 
 **Metodología:**
 - Ponderación quíntuple: decaimiento temporal (λ=0.015) × calidad consultora × sesgo histórico × orientación del medio × metodología
-- Monte Carlo: 10.000 simulaciones con σ=3% calibrado al error histórico argentino (PASO 2023: 8-13pp)
+- Monte Carlo: 10.000 simulaciones con σ=6.5 calibrado al error histórico argentino (PASO 2023: 8-13pp)
 - Corrección de voto oculto: bayesiana, calibrada con legislativas 2025
 - Verificación Art. 97-98 CN en cada simulación
+- **Prior de fundamentals** (mar 2026): blend dinámico encuestas × prior estructural (aprobación, ICC Di Tella, EMAE). Peso fundamentals decrece desde 50% a >1000 días hasta 0% el día de la elección.
 
-**Estado actual (feb. 2026):** LLA ~40-42%, PJ/Kirchnerismo ~33%. Milei lidera imagen en 21/24 distritos.
+**Estado actual (mar. 2026):** LLA ~41%, PJ ~30%. Prior fundamentals: ~41.9%.
 
 **Problema principal:** datos hardcodeados en el HTML — no se actualiza automáticamente.
 
@@ -113,10 +115,15 @@ Guías de proceso que Claude sigue cuando la tarea aplica. Leer antes de ejecuta
 
 ---
 
+## Git y deploy
+
+- **Sí es un repositorio git.** Remote: `https://github.com/Juanpintoselso33/biblitotecario-ai.git`
+- **Deploy automático** via GitHub Pages en: `https://juanpintoselso33.github.io/biblitotecario-ai/index.html`
+- Siempre commitear y pushear a `main` al terminar cambios en el Votómetro.
+
 ## Notas técnicas
 
 - Sin package manager ni build system
-- No es un repositorio git
 - Todo el contenido está en español
 - Python disponible como `python` (no `python3`)
 - Siempre usar `sys.stdout.reconfigure(encoding='utf-8')` en scripts con caracteres especiales

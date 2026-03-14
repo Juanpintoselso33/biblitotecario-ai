@@ -523,6 +523,15 @@
                     </div>
                     <!-- Analysis box -->
                     <div id="firstRoundAnalysis" style="margin-top: 18px; padding: 18px 20px; background: var(--celeste-pale); border: 1px solid var(--border-subtle); border-radius: 10px; font-size: 14px; color: var(--text-secondary); line-height: 1.7;"></div>
+
+                    <!-- ── INDICADORES DE FUNDAMENTALS ── -->
+                    <div id="fundamentalsCard" style="margin-top: 14px; padding: 16px 20px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px;">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 12px;">
+                            Indicadores estructurales · Prior de fundamentals
+                        </div>
+                        <div id="fundamentalsIndicators" style="display: flex; gap: 12px; flex-wrap: wrap;"></div>
+                        <div id="fundamentalsBlendNote" style="margin-top: 10px; font-size: 11px; color: var(--text-muted); line-height: 1.5;"></div>
+                    </div>
                 </section>
 
                 <!-- ========== VILLARRUEL COMO CANDIDATA — ISSUE #5 ========== -->
@@ -1651,6 +1660,71 @@ if(art97) {
     frHTML = `La estimación blended de LLA es <strong>${mV0.toFixed(1)}%</strong>${fundBadge}. No alcanza el 45% (Art. 97) ni cumple la regla de 40%+10pp (Art. 98), con ${df0.toFixed(1)}pp de diferencia sobre PJ. <strong>El escenario más probable es un ballotage Milei vs. Kicillof.</strong> En las simulaciones Monte Carlo, LLA gana en 1ª vuelta solo en el ${pMilei1.toFixed(1)}% de los casos.`;
 }
 frEl.innerHTML = frHTML;
+
+// ── RELLENAR CARD DE FUNDAMENTALS ─────────────────────────────────────────
+(function() {
+    const indEl = document.getElementById('fundamentalsIndicators');
+    const noteEl = document.getElementById('fundamentalsBlendNote');
+    if (!indEl || !noteEl) return;
+
+    // Datos de los indicadores (actualizar mensualmente junto con calcularPriorFundamentals)
+    const indicadores = [
+        {
+            label: 'Aprobación presidencial',
+            valor: '39%',
+            fuente: 'Opina Argentina / Pulso Research · mar 2026',
+            contexto: 'Promedio consultoras',
+            color: '#DC2626',
+            bg: '#FEF2F2',
+            border: '#FECACA',
+            icon: '📊'
+        },
+        {
+            label: 'ICC Di Tella',
+            valor: '44.4 pts',
+            fuente: 'Universidad Torcuato Di Tella · feb 2026',
+            contexto: 'Confianza del consumidor (neutral = 50)',
+            color: '#D97706',
+            bg: '#FFFBEB',
+            border: '#FDE68A',
+            icon: '📈'
+        },
+        {
+            label: 'EMAE (actividad económica)',
+            valor: '+3.5% ia',
+            fuente: 'INDEC · dic 2025',
+            contexto: 'Variación interanual',
+            color: '#16A34A',
+            bg: '#F0FDF4',
+            border: '#BBF7D0',
+            icon: '⚡'
+        },
+        {
+            label: 'Prior fundamentals LLA',
+            valor: fundamentalsPrior.lla.toFixed(1) + '%',
+            fuente: 'Baseline: 40.84% (leg. oct 2025)',
+            contexto: 'Ajuste: aprobación −1.8pp · incumbencia +2pp · ICC +0.9pp · EMAE +0.1pp',
+            color: '#1D4ED8',
+            bg: '#EFF6FF',
+            border: '#BFDBFE',
+            icon: '🎯'
+        },
+    ];
+
+    indEl.innerHTML = indicadores.map(ind => `
+        <div style="flex:1;min-width:160px;padding:12px 14px;background:${ind.bg};border:1px solid ${ind.border};border-radius:8px;">
+            <div style="font-size:11px;color:${ind.color};font-weight:700;margin-bottom:4px;">${ind.icon} ${ind.label}</div>
+            <div style="font-size:20px;font-weight:700;color:${ind.color};line-height:1.2;">${ind.valor}</div>
+            <div style="font-size:10px;color:#6B7280;margin-top:4px;line-height:1.4;">${ind.contexto}</div>
+            <div style="font-size:9px;color:#9CA3AF;margin-top:3px;">${ind.fuente}</div>
+        </div>
+    `).join('');
+
+    const diasP = mediaBlend._dias;
+    const pf = (mediaBlend._pesoFund * 100).toFixed(0);
+    const pp = (100 - mediaBlend._pesoFund * 100).toFixed(0);
+    noteEl.innerHTML = `<strong>Blend aplicado:</strong> ${pf}% fundamentals + ${pp}% encuestas (a ${diasP} días de la elección). El peso de fundamentals decrece linealmente hasta 0% el día del comicio. <a href="https://github.com/Juanpintoselso33/biblitotecario-ai" target="_blank" rel="noopener" style="color:#1D4ED8;">Ver metodología completa →</a>`;
+})();
 
 // PRESIDENTIAL TABLE & CHART
 const presData = [

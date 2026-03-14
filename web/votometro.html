@@ -1634,7 +1634,7 @@ encuestas.forEach(e => {
     const tipoLbl = e.tipo==='candidato'?'C':'E';
     const tipoTitle = e.tipo==='candidato'?'Encuesta por candidato (incluye Villarruel)':'Encuesta por espacio (LLA como partido)';
     const pi = e.pesoInfo;
-    const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.wT.toFixed(3)} × Calidad: ${pi.wC.toFixed(2)} × Sesgo: ${pi.wS.toFixed(2)} × Medio: ${pi.wM.toFixed(2)} × Metodología: ${pi.wMe.toFixed(2)}\nPeso total: ${(e.peso*100).toFixed(1)}%`;
+    const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.temporal.toFixed(3)} × Calidad: ${pi.calidad.toFixed(2)} × Sesgo: ${pi.sesgo.toFixed(2)} × Medio: ${pi.medio.toFixed(2)} × Metodología: ${pi.metodologia.toFixed(2)}\nPeso total: ${(e.peso*100).toFixed(1)}%`;
     pollsBody.innerHTML += `<tr title="${tooltip}"><td><div style="font-weight:600;font-size:12px;">${e.consultora} <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad||'?'}</span> <span title="${tipoTitle}" style="font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:${tipoBg};color:${tipoColor};border:1px solid ${tipoBd};cursor:help;">${tipoLbl}</span></div><div style="font-size:10px;color:var(--text-muted);">n=${e.muestra}</div></td><td style="font-size:12px;color:var(--text-muted);">${fs}</td><td style="font-weight:600;color:var(--lla-color);">${e.LLA.toFixed(1)}</td><td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td><td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div><span style="font-size:10px;color:var(--text-muted);">${(e.peso*100).toFixed(0)}%</span></td><td style="text-align:center;">${e.url ? '<a href="' + e.url + '" target="_blank" rel="noopener" title="Ver publicación original" style="color:#1D4ED8;display:inline-flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>' : '<span style="color:#9CA3AF;font-size:12px;">-</span>'}</td></tr>`;
 });
 
@@ -1703,7 +1703,7 @@ encuestas.forEach(e => {
                 ? 'Encuesta por candidato (incluye Villarruel)'
                 : 'Encuesta por espacio (LLA como partido)';
             const pi = e.pesoInfo;
-            const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.wT.toFixed(3)} × Calidad: ${pi.wC.toFixed(2)} × Sesgo: ${pi.wS.toFixed(2)} × Medio: ${pi.wM.toFixed(2)} × Metodología: ${pi.wMe.toFixed(2)}\nPeso total: ${(e.peso * 100).toFixed(1)}%`;
+            const tooltip = `${e.consultora} · ${e.fecha}\nTemporal: ${pi.temporal.toFixed(3)} × Calidad: ${pi.calidad.toFixed(2)} × Sesgo: ${pi.sesgo.toFixed(2)} × Medio: ${pi.medio.toFixed(2)} × Metodología: ${pi.metodologia.toFixed(2)}\nPeso total: ${(e.peso * 100).toFixed(1)}%`;
             return `<tr title="${tooltip}">`
                 + `<td><div style="font-weight:600;font-size:12px;">${e.consultora}`
                 + ` <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}33;">${e.calidad || '?'}</span>`
@@ -1714,6 +1714,7 @@ encuestas.forEach(e => {
                 + `<td style="font-weight:600;color:var(--peronismo-color);">${e.PJ.toFixed(1)}</td>`
                 + `<td><div class="weight-bar"><div class="weight-fill" style="width:${pp}%;"></div></div>`
                 + `<span style="font-size:10px;color:var(--text-muted);">${(e.peso * 100).toFixed(0)}%</span></td>`
+                + `<td style="text-align:center;">${e.url ? '<a href="' + e.url + '" target="_blank" rel="noopener" title="Ver publicación original" style="color:#1D4ED8;display:inline-flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>' : '<span style="color:#9CA3AF;font-size:12px;">-</span>'}</td>`
                 + `</tr>`;
         }).join('');
     }

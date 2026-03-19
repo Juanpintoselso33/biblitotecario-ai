@@ -6,9 +6,9 @@
 
 ## 1. Qué es y para qué
 
-Sistema RAG conversacional sobre el corpus documental de CIGOB. El usuario pregunta, el sistema responde citando fuentes. Corpus inicial: 5 DOCX limpios (~30k tokens). Debe escalar a cientos de PDFs de calidad variable — muchos escaneados — de gobiernos subnacionales argentinos.
+Sistema RAG conversacional sobre el corpus documental de CIGOB. El usuario pregunta, el sistema responde citando fuentes. Corpus inicial: 5 DOCX limpios (~30k tokens). Diseñado para escalar a cientos de documentos de calidad variable a medida que CIGOB crece su archivo institucional.
 
-Doble rol: herramienta de productividad interna del equipo CIGOB y producto vendible a provincias y municipios como SaaS.
+El Bibliotecario es ante todo una herramienta de productividad del equipo CIGOB: preparar reuniones, consultar posicionamientos, sintetizar material, responder consultas internas. En paralelo, es un showcase concreto del tipo de soluciones que CIGOB diseña — una prueba de que practica lo que predica sobre tecnología aplicada a la gestión.
 
 ---
 
@@ -65,7 +65,7 @@ Doble rol: herramienta de productividad interna del equipo CIGOB y producto vend
 | **Frontend + API** | Next.js 16 (Vercel) | AI SDK v6 nativo, streaming de primera clase, deploy zero-config en Vercel. No hay razón para separar frontend de API en este caso. |
 | **Chat UI** | AI SDK v6 + AI Elements | `useChat` hook maneja streaming, reintentos y estado. AI Elements da componentes pre-armados (citaciones, markdown rendering). Alternativa era armar todo a mano. |
 | **LLM** | Claude Sonnet 4.6 via AI Gateway | Mejor comprensión de español que GPT-4o en benchmarks internos. AI Gateway da failover automático, cost tracking y auth OIDC (sin API keys hardcodeadas en el código). |
-| **Auth** | Clerk Organizations | Multi-tenant nativo: cada organización = un tenant. Free tier cubre 100 orgs + 50k MAU. Alternativas (Auth.js, Supabase Auth) no tienen multi-org built-in. |
+| **Auth** | Clerk | Roles y permisos out-of-the-box (admin/interno/demo). Free tier cubre 50k MAU. Soporta Organizations si en el futuro se incorporan clientes externos, sin migración de auth. |
 | **Base de datos** | Neon Postgres + pgvector | Una sola base para vectores, full-text y metadata relacional. Sin necesidad de un vector DB separado (Pinecone, Qdrant). HNSW nativo, `tsvector` con diccionario `spanish`. Región São Paulo (~30-50ms desde BA). |
 | **Storage** | Vercel Blob | $0.023/GB-mes. Los archivos originales quedan como source of truth. Sin límite práctico de tamaño por archivo. |
 | **Embeddings** | text-embedding-3-small (OpenAI) | 1536 dims, $0.02/1M tokens standard, $0.01/1M batch. Buena calidad para español. Alternativa Nomic es gratis pero menor calidad en español. |
@@ -166,16 +166,13 @@ El índice HNSW es más rápido que IVFFlat para consultas y no requiere re-entr
 
 ---
 
-## 6. Multi-tenancy
+## 6. Schema de datos
 
-### Estrategia: Pool con filtro por tenant_id
+### Diseño con tenant_id desde el arranque
 
-Todos los tenants comparten la misma base de datos. El aislamiento es por `WHERE tenant_id = $X` en cada query. Es la estrategia correcta para este caso porque:
+El schema incluye `tenant_id` en todas las tablas desde Fase 1, aunque CIGOB sea el único usuario. El motivo no es planificar un SaaS sino evitar una migración costosa si en el futuro se decide compartir la infraestructura con un tercero. Agregar la columna después implica reescribir queries, índices y lógica de autorización. Incluirla desde el inicio cuesta cero.
 
-- Los datos no son ultra-sensibles (documentos institucionales, no datos personales regulados)
-- Simplifica operaciones: una sola base, un solo backup, un solo schema migration
-- Escala a cientos de tenants sin overhead de infraestructura
-- Si en el futuro un municipio exige aislamiento físico, se puede migrar a schema-per-tenant sin cambiar la aplicación
+El aislamiento por `WHERE tenant_id = $X` es también una buena práctica de seguridad: ningún endpoint devuelve datos sin ese filtro explícito.
 
 ### Schema
 
@@ -217,7 +214,7 @@ CREATE INDEX ON chunks (tenant_id);
 
 ### Mapping con Clerk
 
-Cada Clerk Organization tiene un `slug` que matchea con `tenants.slug`. El middleware de Next.js extrae el `organizationId` del token JWT, lo resuelve a `tenant_id` con un cache en memoria, y lo inyecta en el contexto de cada request. Ningún endpoint de la API funciona sin `tenant_id`.
+En Fase 1, CIGOB es el único tenant. El middleware de Next.js resuelve el `tenant_id` desde el usuario autenticado (todos los usuarios de CIGOB pertenecen al mismo tenant). Si en el futuro se incorporan otros clientes, cada uno se mapea a una Clerk Organization con su propio `slug`. El cambio es de configuración, no de código.
 
 ---
 
@@ -276,7 +273,7 @@ El modelo económico sería similar al del propio CIGOB: el cliente sube sus doc
 
 ### PDFs escaneados de baja calidad
 
-El riesgo más real. Municipios argentinos van a subir escaneos torcidos de resoluciones de los 90s. Docling con OCR maneja la mayoría, pero la accuracy baja con documentos muy degradados.
+El archivo institucional de CIGOB y los documentos con los que trabaja (informes de gestión, normativas provinciales, materiales de trabajo) suelen ser PDFs escaneados de calidad variable. Docling con OCR maneja la mayoría, pero la accuracy baja con documentos muy degradados.
 
 **Mitigación:** Pipeline de validación post-OCR. Si el texto extraído tiene >30% de tokens irreconocibles (heurística simple: ratio de palabras fuera de diccionario español), marcar el documento como `quality: low` y alertar al admin. No indexar basura.
 
@@ -343,25 +340,15 @@ Con solo 5 documentos (~60 chunks), el hybrid search puede devolver chunks irrel
 
 **Entregable:** El Bibliotecario responde preguntas sobre datos electorales con la misma interfaz.
 
-**Criterio de paso a Fase 4:** Queries electorales funcionan con accuracy verificable contra datos conocidos.
-
 **Componentes a construir:**
 1. Extracción de datos del Votómetro a tablas estructuradas en Neon
 2. Router de queries: detectar si la pregunta es documental o electoral
 3. Para queries electorales: SQL directo sobre tablas estructuradas (no RAG)
 4. Combinar respuestas de ambas fuentes cuando la pregunta es mixta
 
-### Fase 4 — SaaS municipios
+### Posibilidad futura — oferta a terceros
 
-**Criterio de entrada:** Al menos 2 municipios confirmaron interés y tienen documentos listos.
-
-**Entregable:** Onboarding self-service (o asistido), aislamiento de datos, facturación.
-
-**Componentes a construir:**
-1. Flujo de onboarding: crear Clerk Organization → crear tenant en Neon → subir documentos
-2. Dashboard por tenant: uso, documentos indexados, queries frecuentes
-3. Límites por plan: cantidad de documentos, queries/mes
-4. Landing page comercial
+Si CIGOB decide ofrecer el Bibliotecario como servicio a gobiernos subnacionales, el stack ya está preparado. Agregar un cliente nuevo implica crear un tenant en la base y configurar acceso en Clerk — sin tocar código ni infraestructura. El costo de infraestructura para 10-15 clientes activos rondaría los $100-130/mes. Lo que requeriría desarrollo adicional es el flujo de onboarding, un panel de administración por cliente y la gestión de facturación. No es una fase planificada; es una opción abierta por el diseño.
 
 ---
 

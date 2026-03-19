@@ -249,20 +249,26 @@ Cada Clerk Organization tiene un `slug` que matchea con `tenants.slug`. El middl
 | Worker | Cloud Run Free Tier | $0 |
 | **Total** | | **~$55-65/mes** |
 
-### Fase 4 — SaaS municipios (20 clientes)
+### Fase 3 — Integración Votómetro
 
 | Recurso | Servicio | Costo/mes |
 |---|---|---|
 | App + API | Vercel Pro | $20 |
 | Base de datos | Neon Launch (50 GB) | $19 |
-| Storage | Vercel Blob (~6 GB, 500 PDFs) | ~$0.14 |
-| Embeddings | Ingesta ~50M tokens (batch) | ~$0.50 (único) |
-| LLM | Claude Sonnet (~1000 queries/día) | ~$50-80 |
-| Auth | Clerk Free (20 orgs < 100 límite) | $0 |
-| Worker | Cloud Run (puede salir del free tier) | ~$10-20 |
-| **Total** | | **~$100-140/mes** |
+| Storage | Vercel Blob (~2 GB) | ~$0.02 |
+| Embeddings | Ingesta corpus ampliado + Votómetro | ~$0.20 |
+| LLM | Claude Sonnet (~800 queries/día, mix documental + electoral) | ~$25-40 |
+| Auth | Clerk Free | $0 |
+| Worker | Cloud Run Free Tier | $0 |
+| **Total** | | **~$65-80/mes** |
 
-**Ingreso potencial:** 20 municipios × $300/mes promedio = $6.000/mes. Margen bruto >95%.
+Esta fase no agrega costo significativo respecto a Fase 2. El aumento viene del volumen de queries, no de infraestructura nueva.
+
+### Escalabilidad futura — oferta a terceros
+
+El stack está diseñado para que CIGOB pueda, si lo decide, ofrecer el Bibliotecario como servicio a gobiernos subnacionales (provincias, municipios). El schema multi-tenant ya está preparado desde Fase 1: agregar un nuevo cliente es crear una Clerk Organization y un registro en la tabla `tenants`. No requiere cambios de código ni de infraestructura.
+
+El modelo económico sería similar al del propio CIGOB: el cliente sube sus documentos institucionales (ordenanzas, planes de gobierno, normativa) y sus funcionarios los consultan en lenguaje natural. A título indicativo, con 10-15 municipios activos el costo de infraestructura (~$100-130/mes) quedaría cubierto por la primera suscripción. Esta posibilidad no es el objetivo de la Fase 1-3, pero es parte del valor del diseño elegido.
 
 ---
 

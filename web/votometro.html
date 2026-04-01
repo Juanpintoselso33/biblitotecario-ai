@@ -1053,7 +1053,7 @@
 
 const colors = { LLA:'#7B3FE4', PJ:'#1E88E5', PRO:'#FFD600', UCR:'#E53935', FIT:'#C62828', PU:'#FF9800', HCF:'#43A047', OTROS:'#78909C' };
 const FECHA_REF = new Date(); // dinámica — ponderación temporal recalculada en tiempo real
-const ULTIMA_ACTUALIZACION = new Date('2026-03-01T12:00:00'); // última encuesta agregada manualmente (T12 evita desfase UTC)
+const ULTIMA_ACTUALIZACION = new Date('2026-04-01T12:00:00'); // última encuesta agregada manualmente (T12 evita desfase UTC)
 const LAMBDA = 0.015;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1396,10 +1396,12 @@ const encuestasRaw = [
     { fecha:'2026-02-23', consultora:'Analogías',        LLA:31.7, PJ:27.9, PRO:0.0,  PU:0.0, FIT:4.6, OTROS:35.8, muestra:2691, tipo:'candidato', calidad:'A', url:'https://www.analogias.com.ar' },
 
     // ── MAR 2026 ─────────────────────────────────────────────────────────────
-    // Primer mes post-acuerdo FMI / nuevas medidas. Tendencia estable.
-    // Giacobbe, Poliarquía y Trends mantienen rangos similares a feb-26.
+    // Contexto: imagen Milei cae a 41.7% (Giacobbe feb 23-27) / 36.4% gestión (AtlasIntel mar 20-24).
+    // LLA mantiene ventaja electoral pero en descenso desde noviembre 2025.
     // Nota: calidad 'B' = estimación informada por tendencias publicadas / ICG
     { fecha:'2026-03-01', consultora:'Giacobbe',         LLA:42.0, PJ:29.5, PRO:6.5,  PU:4.5, FIT:4.0, OTROS:13.5, muestra:1800, tipo:'espacio',   calidad:'B', url:'https://www.giacobbeconsultora.com.ar/encuestas' },
+    // Opinaia (campo 3-4 mar, pub. Clarín 5-mar): "¿con cuál espacio te identificás?" — n=1000, CAPI+online
+    { fecha:'2026-03-04', consultora:'Opinaia',          LLA:41.0, PJ:22.0, PRO:0.0,  PU:5.0, FIT:7.0, OTROS:25.0, muestra:1000, tipo:'espacio',   calidad:'A', url:'https://www.clarin.com/politica/votaria-nueva-encuesta-pregunto-2027-espacio-65-rechazo_0_yigupYm726.html' },
 ];
 
 function calcPeso(e) {
@@ -1448,11 +1450,11 @@ const media = { LLA:sL/sW, PJ:sP/sW, PRO:sPR/sW, PU:sPU/sW, FIT:sF/sW, OTROS:sO/
 // Fuentes: ver docs/research/2026-03-14/06_datos_fundamentals.md
 
 function calcularPriorFundamentals() {
-    // ── Datos actualizados a marzo 2026 ── actualizar mensualmente ──
+    // ── Datos actualizados a abril 2026 ── actualizar mensualmente ──
     const baselineLLA = 40.84; // Resultado definitivo legislativas oct 2025
-    const aprobacion  = 39;    // Promedio consultoras mar 2026 (Opina/Pulso/AtlasIntel)
-    const icc         = 44.4;  // ICC Di Tella feb 2026 (escala 0-100, neutral≈50)
-    const emaeIa      = 3.5;   // EMAE variación interanual dic 2025 (INDEC)
+    const aprobacion  = 38;    // Promedio ponderado mar 2026: AtlasIntel 36.4% (n=5037), M&F 46.8% → ~38 conservador
+    const icc         = 44.4;  // ICC Di Tella feb 2026 (escala 0-100, neutral≈50) — pendiente dato mar
+    const emaeIa      = 3.5;   // EMAE variación interanual dic 2025 (INDEC) — pendiente dato ene/feb 2026
 
     // ── Ajustes marginales ──────────────────────────────────────────
     const ajusteAprobacion = (aprobacion - 45) * 0.30; // umbral neutral: 45% → -1.8pp

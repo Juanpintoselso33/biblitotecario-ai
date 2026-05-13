@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "timestamp": "2026-05-10T21:29:59.260105",
+    "fuentes_automatizadas": [
+      "indec_series",
+      "bcra",
+      "utdt_icc",
+      "cafam"
+    ],
+    "fuentes_manuales": [
+      "consumo_carne (CICCRA)",
+      "tarifas (ENRE/ENARGAS — usar IPC-vivienda como proxy)",
+      "mortalidad_pymes (AFIP no público — usar CAME como proxy)",
+      "pluriempleo (EPH microdatos)",
+      "desercion_escolar (Ministerio Educación, anual)",
+      "espera_salud (SISA — no en datos abiertos, usar DEIS)",
+      "inseguridad (SNIC — rezago 6-12 meses)",
+      "sentimiento_digital (requiere X API + NLP pipeline)"
+    ]
+  },
+  "indec": {
+    "ipc_total": {
+      "valor": 11077.0608,
+      "variacion_mensual_pct": 3.38262219244152,
+      "fecha": "2026-03-01"
+    },
+    "isalarios_total": {
+      "valor": 8171.66,
+      "variacion_mensual_pct": 2.5353844609516063,
+      "fecha": "2026-01-01"
+    },
+    "salario_real_indice": {
+      "valor": 73.77101333595641,
+      "fecha": "2026-01-01",
+      "nota": "Índice: salario nominal / IPC × 100"
+    },
+    "desocupacion_pct": {
+      "valor": 0.075,
+      "fecha": "2025-10-01"
+    },
+    "tasa_empleo_pct": {
+      "valor": 0.45,
+      "fecha": "2025-10-01"
+    },
+    "isac": {
+      "valor": 143.508889519213,
+      "variacion_mensual_pct": -1.3472880209732363,
+      "fecha": "2026-02-01"
+    },
+    "emae_var_ia_pct": {
+      "valor": 0.0187640404975688,
+      "fecha": "2026-01-01"
+    }
+  },
+  "bcra": {
+    "prestamos_privado_total": {
+      "valor": 128357265.0,
+      "fecha": "2026-05-06"
+    },
+    "prestamos_tarjeta": {
+      "valor": 24344546.0,
+      "fecha": "2026-05-05"
+    },
+    "prestamos_personales": {
+      "valor": 20837425.0,
+      "fecha": "2026-05-05"
+    },
+    "prestamos_hipotecarios": {
+      "valor": 7475016.0,
+      "fecha": "2026-05-05"
+    },
+    "credito_consumo_total": {
+      "valor": 45181971.0,
+      "fecha": "2026-05-05",
+      "unidad": "millones_pesos",
+      "nota": "Tarjeta + personales. Proxy de endeudamiento familiar de consumo."
+    },
+    "badlar": {
+      "valor": 21.375,
+      "fecha": "2026-05-07"
+    }
+  },
+  "utdt": {},
+  "cafam": {}
+}

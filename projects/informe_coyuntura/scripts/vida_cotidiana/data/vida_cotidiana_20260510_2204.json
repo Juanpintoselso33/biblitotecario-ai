@@ -1,0 +1,246 @@
+{
+  "metadata": {
+    "timestamp": "2026-05-10T22:03:36.210378",
+    "fuentes_automatizadas": [
+      "indec_series (IPC, CBT, salarios, empleo, RIPTE, ISAC, EMAE, IPI, faena, acero)",
+      "bcra (creditos privados, tarjeta, personales, hipotecarios, BADLAR)",
+      "utdt_icc (Indice de Confianza del Consumidor)",
+      "cafam (patentamiento motos por provincia)",
+      "ciccra (consumo carne vacuna per capita — PDF mensual)",
+      "snic (estadisticas criminales nacionales + CABA)",
+      "salud (datasets DEIS/SNVS via datos.salud.gob.ar CKAN)",
+      "trends (interes Google: inflacion, precios, inseguridad, trabajo)"
+    ]
+  },
+  "indec": {
+    "ipc_total": {
+      "valor": 11077.0608,
+      "variacion_mensual_pct": 3.38262219244152,
+      "fecha": "2026-03-01"
+    },
+    "ipc_alimentos": {
+      "valor": 12014.7,
+      "variacion_mensual_pct": 3.3524287627210603,
+      "fecha": "2026-03-01"
+    },
+    "ipc_vivienda": {
+      "valor": 12045.2252,
+      "variacion_mensual_pct": 3.7113227390990655,
+      "fecha": "2026-03-01"
+    },
+    "ipc_regulados": {
+      "valor": 11298.7045,
+      "variacion_mensual_pct": 5.082429412317269,
+      "fecha": "2026-03-01"
+    },
+    "cbt": {
+      "valor": 464227.77,
+      "variacion_mensual_pct": 2.632376238661327,
+      "fecha": "2026-03-01"
+    },
+    "cba": {
+      "valor": 212948.52,
+      "variacion_mensual_pct": 2.161585297840629,
+      "fecha": "2026-03-01"
+    },
+    "ripte": {
+      "valor": 1734357.18,
+      "fecha": "2026-02-01"
+    },
+    "brecha_salario_cbt": {
+      "valor": 3.7360048064337037,
+      "ripte_pesos": 1734357.18,
+      "cbt_pesos": 464227.77,
+      "canastas_que_cubre": 3.7360048064337037,
+      "fecha": "2026-02-01",
+      "nota": "RIPTE / CBT: canastas cubiertas por el salario imponible promedio"
+    },
+    "isalarios_total": {
+      "valor": 8171.66,
+      "variacion_mensual_pct": 2.5353844609516063,
+      "fecha": "2026-01-01"
+    },
+    "salario_real_indice": {
+      "valor": 73.77101333595641,
+      "fecha": "2026-01-01",
+      "nota": "Salario nominal / IPC * 100"
+    },
+    "desocupacion": {
+      "valor": 0.075,
+      "fecha": "2025-10-01"
+    },
+    "empleo": {
+      "valor": 0.45,
+      "fecha": "2025-10-01"
+    },
+    "subocupacion_demandante": {
+      "valor": 0.078,
+      "fecha": "2025-10-01"
+    },
+    "informalidad_anual": {
+      "valor": 0.3675,
+      "fecha": "2025-01-01"
+    },
+    "isac": {
+      "valor": 143.508889519213,
+      "variacion_mensual_pct": -1.3472880209732363,
+      "fecha": "2026-02-01"
+    },
+    "emae": {
+      "valor": 0.0187640404975688,
+      "variacion_mensual_pct": -43.05551624830899,
+      "fecha": "2026-01-01"
+    },
+    "ipi": {
+      "valor": 100.46723961081064,
+      "variacion_mensual_pct": -6.113031243011269,
+      "fecha": "2026-02-01"
+    },
+    "faena_vacuna": {
+      "valor": 924.333,
+      "variacion_mensual_pct": -9.260622695520038,
+      "fecha": "2026-02-01"
+    },
+    "acero_crudo": {
+      "valor": 731.618,
+      "variacion_mensual_pct": -8.996058168447686,
+      "fecha": "2026-01-01"
+    }
+  },
+  "bcra": {
+    "prestamos_privado_total": {
+      "valor": 128357265.0,
+      "fecha": "2026-05-06"
+    },
+    "prestamos_tarjeta": {
+      "valor": 24344546.0,
+      "fecha": "2026-05-05"
+    },
+    "prestamos_personales": {
+      "valor": 20837425.0,
+      "fecha": "2026-05-05"
+    },
+    "prestamos_hipotecarios": {
+      "valor": 7475016.0,
+      "fecha": "2026-05-05"
+    },
+    "credito_consumo_total": {
+      "valor": 45181971.0,
+      "fecha": "2026-05-05",
+      "unidad": "millones_pesos",
+      "nota": "Tarjeta + personales. Proxy de endeudamiento familiar de consumo."
+    },
+    "badlar": {
+      "valor": 21.375,
+      "fecha": "2026-05-07"
+    }
+  },
+  "utdt": {
+    "icc_utdt": {
+      "valor": 38.095237731933594,
+      "fecha": "2026-04-01",
+      "unidad": "índice"
+    }
+  },
+  "cafam": {
+    "patentamiento_motos": {
+      "valor": 14815,
+      "fecha": "2026-05",
+      "unidad": "unidades",
+      "provincias": {
+        "BUENOS AIRES": 4189,
+        "CAPITAL FEDERAL": 453,
+        "CATAMARCA": 234,
+        "CHACO": 1015,
+        "CHUBUT": 54,
+        "CORDOBA": 1228,
+        "CORRIENTES": 530,
+        "ENTRE RIOS": 480,
+        "FORMOSA": 342,
+        "JUJUY": 430,
+        "LA PAMPA": 105,
+        "LA RIOJA": 111,
+        "MENDOZA": 428,
+        "MISIONES": 442,
+        "NEUQUEN": 185,
+        "RIO NEGRO": 219,
+        "SALTA": 690,
+        "SAN JUAN": 352,
+        "SAN LUIS": 123,
+        "SANTA CRUZ": 32,
+        "SANTA FE": 1517,
+        "SANTIAGO DEL ESTERO": 623,
+        "TIERRA DEL FUEGO": 3,
+        "TUCUMAN": 1030
+      },
+      "fuente": "CAFAM API"
+    }
+  },
+  "ciccra": {
+    "consumo_carne_per_capita": {
+      "valor": 47.3,
+      "fecha": "2026-03",
+      "unidad": "kg/habitante/anio",
+      "fuente": "CICCRA",
+      "url": "https://ciccra.com.ar/wp-content/uploads/2026/04/Inf-No-302-2026-marzo.pdf",
+      "nota": "Consumo aparente per capita anualizado"
+    }
+  },
+  "snic": {
+    "inseguridad_snic": {
+      "anio": "2024",
+      "total_hechos": 0,
+      "tipos_principales": {
+        "total": 0
+      },
+      "fuente": "SNIC - Ministerio de Seguridad",
+      "url": "https://cloud-snic.minseg.gob.ar/Bases/SNIC/snic-pais.csv",
+      "nota": "Datos anuales. Rezago ~5 meses desde cierre de anio."
+    },
+    "delitos_caba_disponible": {
+      "anio": 2025,
+      "url": "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-justicia-y-seguridad/delitos/delitos_2025.csv",
+      "size_mb": 14.6,
+      "last_modified": "Fri, 08 May 2026 14:30:46 GMT",
+      "nota": "CSV con hechos geolocalizados. Descargar con pd.read_csv(url) para analisis detallado."
+    }
+  },
+  "salud": {
+    "salud_datasets": {
+      "valor": 3,
+      "datasets_disponibles": [
+        {
+          "id": "c1643775-18e1-40fd-9e7f-0cebb5b1abe6",
+          "title": "Defunciones Generales Mensuales ocurridas y registradas en la República Argentina.",
+          "name": "datos-salud-gob-ar-dataset-defunciones-mensuales-ocurridas-en-la-republica-argentina"
+        },
+        {
+          "id": "76ce7d19-921d-4d17-bb20-73c1fe55f07e",
+          "title": "Serie histórica de defunciones ocurridas en Argentina por jurisdicción",
+          "name": "serie-historica-de-defunciones-ocurridas-en-argentina-por-jurisdiccion"
+        },
+        {
+          "id": "7fd3f531-9aeb-45ea-9395-cfcc4af61515",
+          "title": "Tasa de Mortalidad Fetal Total",
+          "name": "tasa-de-mortalidad-fetal-total"
+        }
+      ],
+      "fuente": "datos.salud.gob.ar — CKAN API (busqueda general)",
+      "nota": "Usar las URLs de CKAN para descargar microdatos DEIS o SNVS."
+    }
+  },
+  "trends": {
+    "sentimiento_digital": {
+      "interes_relativo": null,
+      "keywords": [
+        "inflacion",
+        "precios",
+        "inseguridad",
+        "trabajo"
+      ],
+      "geo": "AR",
+      "fuente": "Google Trends via pytrends",
+      "nota": "Rate limit o error de conexion: HTTPSConnectionPool(host='trends.google.com', port=443): Max retries exceeded with url: /trends/api/widgetdata/multiline?req=%7B%22time%22%3A+%222026-02-11+2026-05-11%22%2C+%22resolution%22%3A+%22DAY%22%2C+%22locale%22%3A+%22es-419%22%2C+%22comparisonItem%22%3A+%5B%7B%22geo%22%3A+%7B%22country%22%3A+%22AR%22%7D%2C+%22complexKeywordsRestriction%22%3A+%7B%22keyword%22%3A+%5B%7B%22type%22%3A+%22BROAD%22%2C+%22value%22%3A+%22inflacion%22%7D%5D%7D%7D%2C+%7B%22geo%22%3A+%7B%22country%22%3A+%22AR%22%7D%2C+%22complexKeywordsRestriction%22%3A+%7B%22keyword%22%3A+%5B%7B%22type%22%3A+%22BROAD%22%2C+%22value%22%3A+%22precios%22%7D%5D%7D%7D%2C+%7B%22geo%22%3A+%7B%22country%22%3A+%22AR%22%7D%2C+%22complexKeywordsRestriction%22%3A+%7B%22keyword%22%3A+%5B%7B%22type%22%3A+%22BROAD%22%2C+%22value%22%3A+%22inseguridad%22%7D%5D%7D%7D%2C+%7B%22geo%22%3A+%7B%22country%22%3A+%22AR%22%7D%2C+%22complexKeywordsRestriction%22%3A+%7B%22keyword%22%3A+%5B%7B%22type%22%3A+%22BROAD%22%2C+%22value%22%3A+%22trabajo%22%7D%5D%7D%7D%5D%2C+%22requestOptions%22%3A+%7B%22property%22%3A+%22%22%2C+%22backend%22%3A+%22IZG%22%2C+%22category%22%3A+0%7D%2C+%22userConfig%22%3A+%7B%22userType%22%3A+%22USER_TYPE_SCRAPER%22%7D%7D&token=APO0_qgAAAAAagJ8iWBPoaoGxjVHaXPvx_DaNiElFsG1&tz=-180 (Caused by ResponseError('too many 429 error responses')). Reintentar en 1h."
+    }
+  }
+}

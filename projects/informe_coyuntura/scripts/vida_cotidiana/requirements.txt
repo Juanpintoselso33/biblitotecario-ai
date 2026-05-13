@@ -1,0 +1,6 @@
+requests>=2.31.0
+xlrd==1.2.0           # Para leer .xls OLE2 (UTDT ICC). NO usar xlrd>=2.0 (no soporta xls)
+beautifulsoup4>=4.12  # Para scraping páginas web
+pdfplumber>=0.10.0    # Para parsear PDFs de CICCRA (consumo carne per capita)
+pytrends>=4.9.2       # Google Trends (sentimiento digital — acepta rate limits)
+# pandas>=2.0.0       # Opcional para análisis de series temporales

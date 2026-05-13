@@ -112,6 +112,7 @@ Guías de proceso que Claude sigue cuando la tarea aplica. Leer antes de ejecuta
 - **preparar-reunion**: paso a paso para generar outputs de reunión — mapeo de docs, estructura de archivos, checklist de coherencia
 - **redactar-cigob**: voz, tono, conceptos ancla y estructura según tipo de pieza para cualquier contenido de CIGOB
 - **mantener-votometro**: cómo agregar encuestas, dónde está cada cosa en el HTML, roadmap técnico pendiente
+- **informe-coyuntura**: operar el proyecto informe_coyuntura — cómo correr colectores, mapa de indicadores por cinturón, lógica de scoring/barbarismos, schema del informe.json, diagnóstico de errores
 
 ---
 

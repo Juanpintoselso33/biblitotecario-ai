@@ -51,7 +51,7 @@ development_status:
   epic-1-retrospective: optional
 
   # ─── Epic 2: Informe de Coyuntura — Colección de Datos ─────────────────────
-  epic-2: in-progress
+  epic-2: done
   2-1-adaptar-colector-vida-cotidiana-py-al-patron-estandar: done
   2-2-implementar-colector-macro-py: done
   2-3-implementar-colector-politica-py: done

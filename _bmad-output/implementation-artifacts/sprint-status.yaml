@@ -53,19 +53,19 @@ development_status:
   # ─── Epic 2: Informe de Coyuntura — Colección de Datos ─────────────────────
   epic-2: in-progress
   2-1-adaptar-colector-vida-cotidiana-py-al-patron-estandar: done
-  2-2-implementar-colector-macro-py: in-progress
-  2-3-implementar-colector-politica-py: backlog
-  2-4-implementar-colector-gestion-py: backlog
+  2-2-implementar-colector-macro-py: done
+  2-3-implementar-colector-politica-py: done
+  2-4-implementar-colector-gestion-py: done
   epic-2-retrospective: optional
 
   # ─── Epic 3: Informe de Coyuntura — Generación del Informe ─────────────────
-  epic-3: backlog
-  3-1-implementar-logica-de-scoring-y-deteccion-de-barbarismos-en-generar-informe-py: backlog
-  3-2-implementar-serializacion-de-outputs-informe-json-informe-md: backlog
+  epic-3: done
+  3-1-implementar-logica-de-scoring-y-deteccion-de-barbarismos-en-generar-informe-py: done
+  3-2-implementar-serializacion-de-outputs-informe-json-informe-md: done
   epic-3-retrospective: optional
 
   # ─── Epic 4: Votómetro — Migración y Estabilización ────────────────────────
-  epic-4: backlog
-  4-1-verificar-y-estabilizar-el-votometro-en-su-path-definitivo: backlog
-  4-2-documentar-workflow-de-actualizacion-de-encuestas-y-contrato-con-el-dev: backlog
+  epic-4: done
+  4-1-verificar-y-estabilizar-el-votometro-en-su-path-definitivo: done
+  4-2-documentar-workflow-de-actualizacion-de-encuestas-y-contrato-con-el-dev: done
   epic-4-retrospective: optional

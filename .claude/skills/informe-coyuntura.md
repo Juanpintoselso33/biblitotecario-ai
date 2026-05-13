@@ -43,7 +43,7 @@ projects/informe_coyuntura/
 
 | Cinturón | Peso | Barbarismo | Indicadores | Estado |
 |---|---|---|---|---|
-| `macro` | 30% | tecnocrático | `ipc_total`, `reservas_bcra`, `badlar` | ✅ todos activos |
+| `macro` | 30% | tecnocrático | `ipc_total`, `reservas_bcra`, `badlar`, `emae_ia`, `saldo_comercial_12m`, `recaudacion`, `tcrm`, `rem_ipc_12m`, `prestamos_privados`, `base_monetaria`, `tc_mayorista` | ✅ 11/11 activos |
 | `politica` | 30% | político | `ipc_regulados`, `icg_utdt` | `ipc_regulados` ✅, `icg_utdt` ⚠️ falla graceful |
 | `vida_cotidiana` | 20% | político | `ipc_total`, `desocupacion`, `icc_utdt` | `ipc_total`+`desoc` ✅, `icc_utdt` ⚠️ variable |
 | `gestion` | 20% | gerencial | `indice_salarios_publico`, `isac_construccion` | ✅ todos activos |
@@ -53,6 +53,10 @@ projects/informe_coyuntura/
 | Serie ID | Indicador | Cinturón |
 |---|---|---|
 | `148.3_INIVELNAL_DICI_M_26` | IPC total nacional | macro + vida_cotidiana |
+| `143.3_ICE_SERVIA_2004_A_25` | EMAE variación i.a. mensual (base 2004) | macro |
+| `164.3_SOTALTAL_0_0_8` | Saldo comercial total mensual (M USD) | macro |
+| `172.3_TL_RECAION_M_0_0_17` | Recaudación total mensual | macro |
+| `116.3_TCRMA_0_M_36` | Tipo de Cambio Real Multilateral (base 2010=100) | macro |
 | `148.3_IREGULANAL_DICI_M_22` | IPC regulados | politica |
 | `149.1_SOR_PUBICO_OCTU_0_14` | IS sector público (base oct 2016) | gestion |
 | `33.4_ISAC_CEMENAND_0_0_21_24` | ISAC insumos cemento | gestion |
@@ -63,7 +67,11 @@ projects/informe_coyuntura/
 |---|---|---|
 | `https://apis.datos.gob.ar/series/api/series/` | ver series arriba | macro, politica, vida_cotidiana, gestion |
 | `https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/1` | Reservas internacionales | macro |
+| `https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/5` | TC mayorista de referencia | macro |
 | `https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/7` | BADLAR bancos privados | macro |
+| `https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/15` | Base monetaria | macro |
+| `https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/26` | Préstamos sector privado | macro |
+| `https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/29` | REM expectativas IPC 12m | macro |
 | `https://www.utdt.edu/listado_contenidos.php?id_item_menu=16457` | ICG — confianza gobierno | politica |
 | `https://www.utdt.edu/listado_contenidos.php?id_item_menu=16458` | ICC — confianza consumidor | vida_cotidiana |
 

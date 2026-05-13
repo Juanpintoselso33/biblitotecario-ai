@@ -35,3 +35,8 @@ zoom_s1.js
 output/*.png
 output/main_script.js
 output/review_screenshots/
+
+# CIGOB Análisis — outputs generados por colectores e informes
+projects/*/output/*.json
+projects/*/output/*.md
+projects/*/output/cache/*.json

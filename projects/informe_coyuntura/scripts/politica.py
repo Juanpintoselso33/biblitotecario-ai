@@ -1,45 +1,49 @@
 """
 Colector Cinturón Político — CIGOB
-Patrón estándar: URLs → fetch → score → cache → exit codes
+Capital político según Carlos Matus: 5 dimensiones independientes.
 Ejecutar desde projects/informe_coyuntura/: python scripts/politica.py
 
 Indicadores:
-  icg_utdt       — Índice de Confianza en el Gobierno (UTDT, mensual)
-  ipc_regulados  — Variación IPC regulados (tarifas/subsidios, INDEC)
-                   Proxy de decisiones gubernamentales sobre servicios públicos.
+  votometro_ventaja_lla   — Brecha LLA−PJ en intención de voto (Votómetro CIGOB, auto)
+  eficacia_legislativa    — % proyectos oficiales aprobados (manual)
+  cohesion_bloque         — % cohesión del bloque LLA en Diputados (manual)
+  gobernadores_alineamiento — % gobernadores alineados con política nacional (manual)
+  movilizacion_cepa       — Índice de conflictividad social CEPA 0–100 (manual)
 """
 import sys
 import json
 import re
-import requests
+import math
 import logging
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-SCRIPT_DIR  = Path(__file__).parent
-PROJECT_DIR = SCRIPT_DIR.parent
-CACHE_PATH  = PROJECT_DIR / "output" / "cache" / "politica.json"
+SCRIPT_DIR    = Path(__file__).parent
+PROJECT_DIR   = SCRIPT_DIR.parent
+CACHE_PATH    = PROJECT_DIR / "output" / "cache" / "politica.json"
+MANUALES_PATH = PROJECT_DIR / "data" / "politica" / "manuales.json"
+VOTOMETRO_HTML = PROJECT_DIR.parent / "votometro" / "web" / "votometro.html"
 
-# ── URL Constants (NFR6) ──────────────────────────────────────────────────────
-INDEC_SERIES_BASE       = "https://apis.datos.gob.ar/series/api/series/"
-UTDT_ICG_LISTADO        = "https://www.utdt.edu/listado_contenidos.php?id_item_menu=16457"
-UTDT_ICG_DOWNLOAD_BASE  = "https://www.utdt.edu/download.php?fname="
+CINTURON              = "politica"
+INDICADORES_ESPERADOS = [
+    "votometro_ventaja_lla",
+    "eficacia_legislativa",
+    "cohesion_bloque",
+    "gobernadores_alineamiento",
+    "movilizacion_cepa",
+]
 
-# INDEC — series IDs verificados en datos.gob.ar
-INDEC_IPC_REGULADOS_ID  = "148.3_IREGULANAL_DICI_M_22"  # IPC Regulados (tarifas)
-INDEC_IPC_TOTAL_ID      = "148.3_INIVELNAL_DICI_M_26"   # IPC total (referencia)
-
-HTTP_TIMEOUT = 30
-HTTP_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; CIGOB-Monitor/1.0)"}
+# Días sin actualización antes de marcar como desactualizado
+STALE_MANUAL_DAYS    = 45
+STALE_VOTOMETRO_DAYS = 60
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
-CINTURON              = "politica"
-INDICADORES_ESPERADOS = ["ipc_regulados", "icg_utdt"]
 
+# ── Cache helpers ─────────────────────────────────────────────────────────────
 
 def load_cache() -> dict:
     if CACHE_PATH.exists():
@@ -54,119 +58,216 @@ def save_cache(data: dict) -> None:
         json.dump(data, f, ensure_ascii=False, indent=2, default=str)
 
 
-def _warn(indicador: str, err: Exception) -> None:
-    print(f"[WARN] {CINTURON}.{indicador}: {err}. Usando cache.")
+def _warn(indicador: str, msg: str) -> None:
+    print(f"[WARN] {CINTURON}.{indicador}: {msg}. Usando cache.")
 
 
-def _indec_var_mensual(series_id: str) -> dict:
-    params = {"ids": series_id, "format": "json", "limit": 2, "sort": "desc"}
-    r = requests.get(INDEC_SERIES_BASE, params=params, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-    r.raise_for_status()
-    data = r.json()["data"]
-    actual, anterior = data[0][1], data[1][1]
-    var = (actual / anterior - 1) * 100 if anterior else None
-    return {"valor": round(var, 2) if var else None, "fecha": data[0][0]}
+def _days_old(fecha_str: str) -> int:
+    try:
+        fecha = date.fromisoformat(str(fecha_str)[:10])
+        return (date.today() - fecha).days
+    except Exception:
+        return 999
 
 
-def fetch_ipc_regulados() -> dict | None:
+# ── Votómetro parser ──────────────────────────────────────────────────────────
+
+def fetch_votometro() -> dict | None:
     """
-    IPC Regulados (tarifas de servicios públicos).
-    Var% elevada = gobierno habilitó ajuste de tarifas → señal de tension política.
-    Comparado con IPC total: si regulados sube más → gobierno transfiriendo costos.
+    Parsea encuestasRaw del Votómetro CIGOB y calcula la brecha ponderada LLA−PJ.
+
+    Filtros:
+    - tipo='espacio' (porcentajes de espacio político, no candidatos individuales)
+    - últimos STALE_VOTOMETRO_DAYS días desde la encuesta más reciente
+
+    Peso = exp(−0.015 × días) × calidad_mult  donde A=3, B=2, C=1
     """
     try:
-        reg = _indec_var_mensual(INDEC_IPC_REGULADOS_ID)
-        tot = _indec_var_mensual(INDEC_IPC_TOTAL_ID)
-        brecha = round(reg["valor"] - tot["valor"], 2) if reg["valor"] and tot["valor"] else None
+        if not VOTOMETRO_HTML.exists():
+            raise FileNotFoundError(f"Votómetro no encontrado: {VOTOMETRO_HTML}")
+
+        with open(VOTOMETRO_HTML, encoding="utf-8") as f:
+            html = f.read()
+
+        # Extraer bloque encuestasRaw
+        m = re.search(r"const\s+encuestasRaw\s*=\s*\[(.*?)\];", html, re.DOTALL)
+        if not m:
+            raise ValueError("No se encontró encuestasRaw en el HTML")
+
+        raw_block = m.group(1)
+
+        # Parsear cada objeto JS: { campo:valor, ... }
+        entries = []
+        for obj in re.finditer(r"\{([^}]+)\}", raw_block):
+            fields = {}
+            for kv in re.finditer(r"(\w+)\s*:\s*'([^']*)'|(\w+)\s*:\s*([\d.]+)", obj.group(1)):
+                if kv.group(1):
+                    fields[kv.group(1)] = kv.group(2)
+                else:
+                    fields[kv.group(3)] = float(kv.group(4))
+            if fields:
+                entries.append(fields)
+
+        # Filtrar solo tipo espacio
+        espacios = [e for e in entries if str(e.get("tipo", "")).strip() == "espacio"]
+        if not espacios:
+            raise ValueError("Sin encuestas tipo='espacio' en Votómetro")
+
+        # Fecha más reciente entre las de espacio
+        fechas = []
+        for e in espacios:
+            try:
+                fechas.append(date.fromisoformat(str(e["fecha"])[:10]))
+            except Exception:
+                pass
+        if not fechas:
+            raise ValueError("Sin fechas válidas en encuestas espacio")
+        fecha_max = max(fechas)
+
+        # Usar solo encuestas dentro de la ventana de tiempo
+        cutoff = (fecha_max - timedelta(days=STALE_VOTOMETRO_DAYS)).isoformat()
+        recientes = [e for e in espacios if str(e.get("fecha", "")) >= cutoff]
+        if not recientes:
+            raise ValueError("Sin encuestas espacio recientes en ventana de tiempo")
+
+        CALIDAD_MULT = {"A": 3.0, "B": 2.0, "C": 1.0}
+        LAMBDA = 0.015
+
+        suma_peso = 0.0
+        suma_lla  = 0.0
+        suma_pj   = 0.0
+
+        for e in recientes:
+            try:
+                fecha_enc = date.fromisoformat(str(e["fecha"])[:10])
+                dias = (date.today() - fecha_enc).days
+                wT = math.exp(-LAMBDA * dias)
+                cal = str(e.get("calidad", "B")).strip().upper()
+                wC = CALIDAD_MULT.get(cal, 2.0)
+                w  = wT * wC
+
+                lla = float(e.get("LLA", 0))
+                pj  = float(e.get("PJ", 0))
+
+                suma_peso += w
+                suma_lla  += w * lla
+                suma_pj   += w * pj
+            except Exception:
+                continue
+
+        if suma_peso == 0:
+            raise ValueError("Suma de pesos = 0")
+
+        lla_pond = round(suma_lla / suma_peso, 1)
+        pj_pond  = round(suma_pj / suma_peso, 1)
+        gap      = round(lla_pond - pj_pond, 1)
+
         return {
-            "valor": reg["valor"],
-            "valor_brecha_vs_ipc": brecha,
-            "unidad": "% mensual",
-            "fuente": INDEC_SERIES_BASE,
-            "fecha_dato": reg["fecha"],
-            "desactualizado": False,
+            "valor": gap,
+            "lla_ponderado": lla_pond,
+            "pj_ponderado": pj_pond,
+            "n_encuestas": len(recientes),
+            "unidad": "pp (LLA − PJ)",
+            "fuente": str(VOTOMETRO_HTML),
+            "fecha_dato": str(fecha_max),
+            "desactualizado": _days_old(str(fecha_max)) > STALE_VOTOMETRO_DAYS,
         }
+
     except Exception as e:
-        _warn("ipc_regulados", e)
+        _warn("votometro_ventaja_lla", str(e))
         return None
 
 
-def fetch_icg() -> dict | None:
-    """
-    Índice de Confianza en el Gobierno (UTDT).
-    Busca XLS en la página de listado; fallback graceful si no hay descarga.
-    """
-    try:
-        import xlrd
-        r = requests.get(UTDT_ICG_LISTADO, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT, verify=False)
-        r.raise_for_status()
-        matches = re.findall(r"download\.php\?fname=([^\"'\s>]+\.(?:xls|xlsx))", r.text, re.IGNORECASE)
-        if not matches:
-            raise ValueError("Sin descarga XLS en página ICG UTDT")
+# ── Colectores manuales ───────────────────────────────────────────────────────
 
-        url = UTDT_ICG_DOWNLOAD_BASE + matches[0]
-        r2 = requests.get(url, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT, verify=False)
-        r2.raise_for_status()
+def load_manuales() -> dict:
+    if not MANUALES_PATH.exists():
+        return {}
+    with open(MANUALES_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    data.pop("_meta", None)
+    return data
 
-        wb = xlrd.open_workbook(file_contents=r2.content)
-        ws = wb.sheets()[0]
 
-        for row_idx in range(ws.nrows - 1, -1, -1):
-            fc, vc = ws.cell(row_idx, 0), ws.cell(row_idx, 1)
-            if fc.ctype == xlrd.XL_CELL_DATE and vc.ctype == xlrd.XL_CELL_NUMBER:
-                try:
-                    t = xlrd.xldate_as_tuple(fc.value, wb.datemode)
-                    return {
-                        "valor": round(vc.value, 2),
-                        "unidad": "índice",
-                        "fuente": UTDT_ICG_LISTADO,
-                        "fecha_dato": f"{t[0]}-{t[1]:02d}-{t[2]:02d}",
-                        "desactualizado": False,
-                    }
-                except Exception:
-                    continue
-        raise ValueError("Sin filas válidas en XLS ICG")
-    except Exception as e:
-        _warn("icg_utdt", e)
+def fetch_manual(nombre: str, stale_days: int = STALE_MANUAL_DAYS) -> dict | None:
+    manuales = load_manuales()
+    entry = manuales.get(nombre)
+    if entry is None:
+        _warn(nombre, f"No encontrado en {MANUALES_PATH}")
+        return None
+    if entry.get("valor") is None:
+        _warn(nombre, "valor = null en manuales.json")
         return None
 
+    dias = _days_old(str(entry.get("fecha_dato", "")))
+    return {
+        **entry,
+        "desactualizado": dias > stale_days,
+    }
+
+
+# ── Score ─────────────────────────────────────────────────────────────────────
 
 def calcular_score(indicadores: dict) -> float:
     """
-    Score 0-10: mayor = mayor tensión política.
-    ipc_regulados: tarifas subiendo más que inflación → más decisiones políticas costosas
-        var% 0 → 0, 10% → 10. Penaliza más si supera IPC total (brecha positiva).
-    icg_utdt: menor confianza en gobierno → mayor tensión
-        ICG ~20 → 5, ICG ~40 → 0, ICG <10 → 10
+    Score 0–10: mayor = mayor tensión en capital político.
+
+    Cada dimensión de Matus pesa igual (1/5 del total, o 1/N si hay ausentes).
+
+    votometro_ventaja_lla (gap LLA−PJ en pp):
+        gap=+15pp→0, gap=0→5, gap=−15pp→10
+    eficacia_legislativa (% 0–100):
+        70%→0, 35%→5, 0%→10
+    cohesion_bloque (% 0–100):
+        95%→0, 60%→5, 25%→10
+    gobernadores_alineamiento (% 0–100):
+        80%→0, 40%→5, 0%→10
+    movilizacion_cepa (índice 0–100):
+        0→0, 50→5, 100→10
     """
     scores = []
 
-    reg = indicadores.get("ipc_regulados", {})
-    reg_val = reg.get("valor")
-    if reg_val is not None:
-        brecha = reg.get("valor_brecha_vs_ipc", 0) or 0
-        base = min(10.0, max(0.0, float(reg_val)))
-        bonus = min(3.0, max(-3.0, float(brecha) * 0.3))
-        scores.append(min(10.0, max(0.0, base + bonus)))
+    vot = indicadores.get("votometro_ventaja_lla", {}).get("valor")
+    if vot is not None:
+        scores.append(min(10.0, max(0.0, 5.0 - float(vot) / 3.0)))
 
-    icg = indicadores.get("icg_utdt", {}).get("valor")
-    if icg is not None:
-        scores.append(min(10.0, max(0.0, (40.0 - float(icg)) / 4.0)))
+    efic = indicadores.get("eficacia_legislativa", {}).get("valor")
+    if efic is not None:
+        scores.append(min(10.0, max(0.0, (70.0 - float(efic)) / 7.0)))
+
+    coh = indicadores.get("cohesion_bloque", {}).get("valor")
+    if coh is not None:
+        scores.append(min(10.0, max(0.0, (95.0 - float(coh)) / 7.0)))
+
+    gob = indicadores.get("gobernadores_alineamiento", {}).get("valor")
+    if gob is not None:
+        scores.append(min(10.0, max(0.0, (80.0 - float(gob)) / 8.0)))
+
+    mov = indicadores.get("movilizacion_cepa", {}).get("valor")
+    if mov is not None:
+        scores.append(min(10.0, max(0.0, float(mov) / 10.0)))
 
     return round(sum(scores) / len(scores), 1) if scores else 5.0
 
 
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main() -> None:
-    cache_anterior        = load_cache()
+    cache_anterior         = load_cache()
     indicadores_anteriores = cache_anterior.get("indicadores", {})
 
-    frescos: dict  = {}
-    frescos_count  = 0
+    frescos: dict = {}
+    frescos_count = 0
 
-    for nombre, fetcher in [
-        ("ipc_regulados", fetch_ipc_regulados),
-        ("icg_utdt",      fetch_icg),
-    ]:
+    colectores = [
+        ("votometro_ventaja_lla",       fetch_votometro),
+        ("eficacia_legislativa",        lambda: fetch_manual("eficacia_legislativa")),
+        ("cohesion_bloque",             lambda: fetch_manual("cohesion_bloque")),
+        ("gobernadores_alineamiento",   lambda: fetch_manual("gobernadores_alineamiento")),
+        ("movilizacion_cepa",           lambda: fetch_manual("movilizacion_cepa")),
+    ]
+
+    for nombre, fetcher in colectores:
         resultado = fetcher()
         if resultado is not None and resultado.get("valor") is not None:
             frescos[nombre] = resultado

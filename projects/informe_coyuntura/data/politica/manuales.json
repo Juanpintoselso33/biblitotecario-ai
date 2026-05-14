@@ -1,0 +1,38 @@
+{
+  "_meta": {
+    "descripcion": "Indicadores manuales del cinturón político (capital político según Matus). Actualizar cuando haya nuevos datos. desactualizado se setea automáticamente si fecha_dato > 45 días.",
+    "indicadores": ["eficacia_legislativa", "cohesion_bloque", "gobernadores_alineamiento", "movilizacion_cepa"]
+  },
+  "eficacia_legislativa": {
+    "valor": 42,
+    "estado": "placeholder",
+    "unidad": "% proyectos oficiales aprobados",
+    "fuente": "Seguimiento de votaciones en Diputados/Senado — elaboración CIGOB",
+    "notas": "% de proyectos enviados por el Ejecutivo que obtuvieron media sanción o aprobación definitiva en la legislatura en curso. Incluye leyes ordinarias y DNU ratificados.",
+    "fecha_dato": "2026-04-01"
+  },
+  "cohesion_bloque": {
+    "valor": 78,
+    "estado": "placeholder",
+    "unidad": "% votos en línea con la posición oficial del bloque LLA",
+    "fuente": "Votaciones Cámara de Diputados — elaboración CIGOB en base a Hcdn.gob.ar",
+    "notas": "Proporción de diputados del bloque LLA que votaron alineados con la posición oficial en las votaciones nominales de los últimos 3 meses.",
+    "fecha_dato": "2026-04-01"
+  },
+  "gobernadores_alineamiento": {
+    "valor": 55,
+    "estado": "placeholder",
+    "unidad": "% gobernadores alineados con política nacional",
+    "fuente": "Análisis de declaraciones y adhesiones públicas — elaboración CIGOB",
+    "notas": "% de gobernadores provinciales (sobre 24) cuya posición pública es de alineamiento o apoyo al programa del gobierno nacional. Incluye acuerdos fiscales, apoyo a reformas, participación en foros oficiales.",
+    "fecha_dato": "2026-04-01"
+  },
+  "movilizacion_cepa": {
+    "valor": 58,
+    "estado": "placeholder",
+    "unidad": "índice 0–100 (mayor = mayor conflictividad)",
+    "fuente": "CEPA — Centro de Economía Política Argentina / elaboración CIGOB",
+    "notas": "Índice de conflictividad social basado en registros de movilizaciones, cortes, huelgas y protesta callejera. Base CEPA con sistematización propia. 0 = sin conflicto; 100 = conflicto máximo histórico.",
+    "fecha_dato": "2026-04-01"
+  }
+}

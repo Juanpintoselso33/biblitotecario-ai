@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "descripcion": "Indicadores manuales del cinturón político (capital político según Matus). Actualizar cuando haya nuevos datos. desactualizado se setea automáticamente si fecha_dato > 45 días.",
-    "indicadores": ["eficacia_legislativa", "cohesion_bloque", "gobernadores_alineamiento", "movilizacion_cepa"]
+    "descripcion": "Indicadores manuales del cinturón político (capital político según Matus). Actualizar cuando haya nuevos datos. desactualizado se setea automáticamente si fecha_dato > 45 días. movilizacion_cepa y icg_utdt son automáticos — no van aquí.",
+    "indicadores": ["eficacia_legislativa", "cohesion_bloque", "gobernadores_alineamiento"]
   },
   "eficacia_legislativa": {
     "valor": 42,
@@ -25,14 +25,6 @@
     "unidad": "% gobernadores alineados con política nacional",
     "fuente": "Análisis de declaraciones y adhesiones públicas — elaboración CIGOB",
     "notas": "% de gobernadores provinciales (sobre 24) cuya posición pública es de alineamiento o apoyo al programa del gobierno nacional. Incluye acuerdos fiscales, apoyo a reformas, participación en foros oficiales.",
-    "fecha_dato": "2026-04-01"
-  },
-  "movilizacion_cepa": {
-    "valor": 58,
-    "estado": "placeholder",
-    "unidad": "índice 0–100 (mayor = mayor conflictividad)",
-    "fuente": "CEPA — Centro de Economía Política Argentina / elaboración CIGOB",
-    "notas": "Índice de conflictividad social basado en registros de movilizaciones, cortes, huelgas y protesta callejera. Base CEPA con sistematización propia. 0 = sin conflicto; 100 = conflicto máximo histórico.",
     "fecha_dato": "2026-04-01"
   }
 }

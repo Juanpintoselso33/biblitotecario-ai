@@ -4,21 +4,25 @@ Capital político según Carlos Matus: 5 dimensiones independientes.
 Ejecutar desde projects/informe_coyuntura/: python scripts/politica.py
 
 Indicadores:
-  votometro_ventaja_lla   — Brecha LLA−PJ en intención de voto (Votómetro CIGOB, auto)
-  eficacia_legislativa    — % proyectos oficiales aprobados (manual)
-  cohesion_bloque         — % cohesión del bloque LLA en Diputados (manual)
+  votometro_ventaja_lla     — Brecha LLA−PJ en intención de voto (Votómetro CIGOB, auto)
+  icg_utdt                  — Índice de Confianza en el Gobierno UTDT (datos.gob.ar, auto)
+  movilizacion_cepa         — Conflictividad social CEPA 0–100 (scrape centrocepa.com.ar, auto)
+  cohesion_bloque           — % cohesión del bloque LLA en Diputados (manual)
+  eficacia_legislativa      — % proyectos oficiales aprobados (manual)
   gobernadores_alineamiento — % gobernadores alineados con política nacional (manual)
-  movilizacion_cepa       — Índice de conflictividad social CEPA 0–100 (manual)
 """
 import sys
 import json
 import re
 import math
 import logging
+import requests
+import urllib3
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 SCRIPT_DIR    = Path(__file__).parent
@@ -30,15 +34,27 @@ VOTOMETRO_HTML = PROJECT_DIR.parent / "votometro" / "web" / "votometro.html"
 CINTURON              = "politica"
 INDICADORES_ESPERADOS = [
     "votometro_ventaja_lla",
-    "eficacia_legislativa",
-    "cohesion_bloque",
-    "gobernadores_alineamiento",
+    "icg_utdt",
     "movilizacion_cepa",
+    "cohesion_bloque",
+    "eficacia_legislativa",
+    "gobernadores_alineamiento",
 ]
 
 # Días sin actualización antes de marcar como desactualizado
 STALE_MANUAL_DAYS    = 45
 STALE_VOTOMETRO_DAYS = 60
+STALE_ICG_DAYS       = 120   # ICG es trimestral
+
+HTTP_TIMEOUT = 20
+HTTP_HEADERS = {"User-Agent": "CIGOB-InformeCoyuntura/1.0"}
+
+INDEC_BASE      = "https://apis.datos.gob.ar/series/api/series/"
+ICG_SERIES_ID   = "370.2_ICG_NIVEL_RAL_0_0_17_40"
+
+CEPA_INFORMES_URL       = "https://centrocepa.com.ar/informes"
+CEPA_MAX_CASOS_MES      = 80.0    # 80 casos/mes = 100 en la escala normalizada
+CEPA_MAX_CONFLICTOS_TOT = 200.0   # 200 conflictos acumulados = 100 en la escala (total desde inicio de período)
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
@@ -89,14 +105,12 @@ def fetch_votometro() -> dict | None:
         with open(VOTOMETRO_HTML, encoding="utf-8") as f:
             html = f.read()
 
-        # Extraer bloque encuestasRaw
         m = re.search(r"const\s+encuestasRaw\s*=\s*\[(.*?)\];", html, re.DOTALL)
         if not m:
             raise ValueError("No se encontró encuestasRaw en el HTML")
 
         raw_block = m.group(1)
 
-        # Parsear cada objeto JS: { campo:valor, ... }
         entries = []
         for obj in re.finditer(r"\{([^}]+)\}", raw_block):
             fields = {}
@@ -108,12 +122,10 @@ def fetch_votometro() -> dict | None:
             if fields:
                 entries.append(fields)
 
-        # Filtrar solo tipo espacio
         espacios = [e for e in entries if str(e.get("tipo", "")).strip() == "espacio"]
         if not espacios:
             raise ValueError("Sin encuestas tipo='espacio' en Votómetro")
 
-        # Fecha más reciente entre las de espacio
         fechas = []
         for e in espacios:
             try:
@@ -124,7 +136,6 @@ def fetch_votometro() -> dict | None:
             raise ValueError("Sin fechas válidas en encuestas espacio")
         fecha_max = max(fechas)
 
-        # Usar solo encuestas dentro de la ventana de tiempo
         cutoff = (fecha_max - timedelta(days=STALE_VOTOMETRO_DAYS)).isoformat()
         recientes = [e for e in espacios if str(e.get("fecha", "")) >= cutoff]
         if not recientes:
@@ -178,6 +189,124 @@ def fetch_votometro() -> dict | None:
         return None
 
 
+# ── ICG UTDT ──────────────────────────────────────────────────────────────────
+
+def fetch_icg_utdt() -> dict | None:
+    """
+    Índice de Confianza en el Gobierno — UTDT, escala 0–5 (mayor = mayor confianza).
+    Serie trimestral publicada en datos.gob.ar.
+    Dimensión: confianza institucional (Matus).
+    """
+    try:
+        r = requests.get(
+            INDEC_BASE,
+            params={"ids": ICG_SERIES_ID, "format": "json", "limit": 1, "sort": "desc"},
+            headers=HTTP_HEADERS,
+            timeout=HTTP_TIMEOUT,
+        )
+        r.raise_for_status()
+        data = r.json().get("data", [])
+        if not data or data[0][1] is None:
+            raise ValueError("Sin datos en la respuesta de la API")
+
+        fecha, valor = data[0][0], data[0][1]
+        return {
+            "valor": round(float(valor), 2),
+            "unidad": "índice 0–5 (ICG Nivel General UTDT, mayor = mayor confianza)",
+            "fuente": f"datos.gob.ar series {ICG_SERIES_ID}",
+            "fecha_dato": str(fecha)[:10],
+            "desactualizado": _days_old(str(fecha)[:10]) > STALE_ICG_DAYS,
+        }
+
+    except Exception as e:
+        _warn("icg_utdt", str(e))
+        return None
+
+
+# ── CEPA conflictividad ───────────────────────────────────────────────────────
+
+def fetch_cepa_movilizacion() -> dict | None:
+    """
+    Conflictividad social CEPA — índice 0–100 normalizado.
+    Estrategia: listar centrocepa.com.ar/informes → encontrar el último informe
+    con "conflictividad" en la URL → parsear HTML del informe buscando
+    "X casos por mes" → normalizar (80 casos/mes = 100).
+    Dimensión: conflicto social (Matus).
+    """
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        _warn("movilizacion_cepa", "beautifulsoup4 no disponible")
+        return None
+
+    try:
+        # Paso 1: página de listado de informes
+        r = requests.get(CEPA_INFORMES_URL, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        links = [
+            a for a in soup.find_all("a", href=True)
+            if "conflictividad" in a.get("href", "").lower()
+        ]
+        if not links:
+            raise ValueError("No se encontraron links de conflictividad en la página de informes CEPA")
+
+        # Ordenar por número en la URL (mayor número = más reciente)
+        def url_num(a):
+            m = re.search(r"/(\d+)[/-]", a["href"])
+            return int(m.group(1)) if m else 0
+
+        links.sort(key=url_num, reverse=True)
+        href = links[0]["href"]
+        informe_url = ("https://centrocepa.com.ar" + href) if href.startswith("/") else href
+
+        # Paso 2: página del informe
+        r2 = requests.get(informe_url, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r2.raise_for_status()
+
+        # Paso 3: extraer cifra de conflictividad — varios patrones posibles en los informes CEPA
+
+        # Patrón A: "X casos por mes" o "promedio de X casos mensuales"
+        m_mes = re.search(
+            r"(\d+(?:[.,]\d+)?)\s+casos?\s+por\s+mes"
+            r"|promedio\s+de\s+(\d+(?:[.,]\d+)?)\s+casos?\s+mensuales?",
+            r2.text, re.IGNORECASE
+        )
+        # Patrón B: "al menos[,] N conflictos" o "se registraron[,] N conflictos"
+        m_tot = re.search(
+            r"(?:al menos,?\s+|se registraron,?\s+al menos,?\s+|se registraron\s+)"
+            r"(\d+)\s+conflictos?",
+            r2.text, re.IGNORECASE
+        )
+
+        if m_mes:
+            raw = (m_mes.group(1) or m_mes.group(2)).replace(",", ".")
+            cifra = float(raw)
+            val = round(min(100.0, (cifra / CEPA_MAX_CASOS_MES) * 100.0), 1)
+            metrica = f"{cifra} casos/mes"
+        elif m_tot:
+            cifra = float(m_tot.group(1))
+            val = round(min(100.0, (cifra / CEPA_MAX_CONFLICTOS_TOT) * 100.0), 1)
+            metrica = f"{cifra} conflictos acumulados"
+        else:
+            raise ValueError(f"No se encontró patrón de conflictividad en {informe_url}")
+
+        return {
+            "valor": val,
+            "cifra_cruda": cifra,
+            "metrica": metrica,
+            "unidad": "índice 0–100 (normalizado)",
+            "fuente": informe_url,
+            "fecha_dato": str(date.today()),
+            "desactualizado": False,
+        }
+
+    except Exception as e:
+        _warn("movilizacion_cepa", str(e))
+        return None
+
+
 # ── Colectores manuales ───────────────────────────────────────────────────────
 
 def load_manuales() -> dict:
@@ -211,25 +340,34 @@ def fetch_manual(nombre: str, stale_days: int = STALE_MANUAL_DAYS) -> dict | Non
 def calcular_score(indicadores: dict) -> float:
     """
     Score 0–10: mayor = mayor tensión en capital político.
-
-    Cada dimensión de Matus pesa igual (1/5 del total, o 1/N si hay ausentes).
+    Cada dimensión de Matus pesa igual (1/N disponibles).
 
     votometro_ventaja_lla (gap LLA−PJ en pp):
-        gap=+15pp→0, gap=0→5, gap=−15pp→10
+        +15pp→0, 0→5, −15pp→10
+    icg_utdt (ICG 0–5, mayor = mayor confianza):
+        3.5→0, 1.75→5, 0→10 (menor confianza = mayor tensión)
+    movilizacion_cepa (índice 0–100):
+        0→0, 50→5, 100→10
     eficacia_legislativa (% 0–100):
         70%→0, 35%→5, 0%→10
     cohesion_bloque (% 0–100):
         95%→0, 60%→5, 25%→10
     gobernadores_alineamiento (% 0–100):
         80%→0, 40%→5, 0%→10
-    movilizacion_cepa (índice 0–100):
-        0→0, 50→5, 100→10
     """
     scores = []
 
     vot = indicadores.get("votometro_ventaja_lla", {}).get("valor")
     if vot is not None:
         scores.append(min(10.0, max(0.0, 5.0 - float(vot) / 3.0)))
+
+    icg = indicadores.get("icg_utdt", {}).get("valor")
+    if icg is not None:
+        scores.append(min(10.0, max(0.0, (3.5 - float(icg)) / 0.35)))
+
+    cepa = indicadores.get("movilizacion_cepa", {}).get("valor")
+    if cepa is not None:
+        scores.append(min(10.0, max(0.0, float(cepa) / 10.0)))
 
     efic = indicadores.get("eficacia_legislativa", {}).get("valor")
     if efic is not None:
@@ -242,10 +380,6 @@ def calcular_score(indicadores: dict) -> float:
     gob = indicadores.get("gobernadores_alineamiento", {}).get("valor")
     if gob is not None:
         scores.append(min(10.0, max(0.0, (80.0 - float(gob)) / 8.0)))
-
-    mov = indicadores.get("movilizacion_cepa", {}).get("valor")
-    if mov is not None:
-        scores.append(min(10.0, max(0.0, float(mov) / 10.0)))
 
     return round(sum(scores) / len(scores), 1) if scores else 5.0
 
@@ -261,10 +395,11 @@ def main() -> None:
 
     colectores = [
         ("votometro_ventaja_lla",       fetch_votometro),
-        ("eficacia_legislativa",        lambda: fetch_manual("eficacia_legislativa")),
+        ("icg_utdt",                    fetch_icg_utdt),
+        ("movilizacion_cepa",           fetch_cepa_movilizacion),
         ("cohesion_bloque",             lambda: fetch_manual("cohesion_bloque")),
+        ("eficacia_legislativa",        lambda: fetch_manual("eficacia_legislativa")),
         ("gobernadores_alineamiento",   lambda: fetch_manual("gobernadores_alineamiento")),
-        ("movilizacion_cepa",           lambda: fetch_manual("movilizacion_cepa")),
     ]
 
     for nombre, fetcher in colectores:

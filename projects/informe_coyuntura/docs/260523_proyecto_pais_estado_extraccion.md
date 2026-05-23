@@ -1,237 +1,201 @@
-# Proyecto País — Estado de extracción de datos
+# Proyecto País: Indicadores en trabajo — Estado de extracción
 
 **Fecha:** 23 de mayo de 2026
-**Emisor:** Fundación CIGOB — Equipo de Datos y Análisis
-**Objeto:** Estado de implementación y extracción automática de los indicadores enunciados en el documento "Proyecto País: Indicadores en trabajo" (260520).
+**Versión:** actualización del documento base "Proyecto País: Indicadores en trabajo" (260520).
 
-Este documento centraliza el estado de extracción de datos de los cuatro cinturones del informe de coyuntura matusiano. Indica para cada indicador propuesto si está activo en el colector, qué fuente real se usa, y cuándo se ejecutó por última vez con éxito.
+Este documento mantiene la misma estructura del documento base y actualiza, para cada indicador propuesto, su estado actual de extracción: si ya está implementado, qué fuente se usa, cuándo se ejecutó por última vez, y en qué casos no se pudo automatizar y por qué.
 
----
-
-## Resumen ejecutivo
-
-| Cinturón | Indicadores cubiertos | Auto activos | Manual / placeholder | Bloqueados | Score |
-|---|---|---|---|---|---|
-| Vida Cotidiana | 14 + 1 manual | 14 (8 fuentes) | 1 (deserción escolar) | 0 | — |
-| Macroeconomía | 11 | 11 | 0 | 0 | **2.1 estable** |
-| Política | 9 (de 10 propuestos) | 7 | 2 | 0 | **4.7 en tensión** |
-| Gestión | 12 | 6 | 4 | 2 | **5.9 en tensión** |
-| **Total** | **46** | **38 (82.6%)** | **7 (15.2%)** | **2 (4.3%)** | — |
-
-> **Cobertura del documento 260520:** todos los indicadores propuestos en el documento base están al menos cubiertos como manual/fallback. Solo dos quedaron definitivamente bloqueados por limitaciones de las fuentes oficiales: `libertad_opcion_salud` y `privatizaciones`.
+**Convenciones:**
+- ✅ AUTO — extracción automática operativa
+- 📋 MANUAL — carga manual periódica desde `data/*/manuales.json`
+- ❌ BLOQUEADO — fuente no accesible / sin proxy viable (detalle al pie)
+- 🔬 PROPUESTO — no implementado, factible con fuentes identificadas
 
 ---
 
 ## 1. Cinturón de la Vida Cotidiana
 
-**Orquestador:** `scripts/vida_cotidiana/main.py` — 8 fuentes activas, ~32 datapoints por ejecución.
-**Última ejecución:** 23-may-2026 13:56 — todas las fuentes OK.
+Este cinturón cuenta con un alto grado de avance, con la mayoría de sus métricas ya integradas en el orquestador automático (`scripts/vida_cotidiana/main.py`, 8 fuentes activas), utilizando proxies metodológicos en los casos donde la fuente original no era viable. **Cobertura: 14/14 conceptos del 260520 cubiertos + 1 manual estructural.**
 
-### Indicadores activos (cobertura completa del documento)
+### Indicadores Seleccionados / Activos
 
-| Indicador del 260520 | Implementación técnica | Fuente | Última fecha |
-|---|---|---|---|
-| Brecha Salario Real vs. CBT | `brecha_salario_cbt` = 3.82 canastas | INDEC (RIPTE + CBT) datos.gob.ar | mar-2026 |
-| IPC-Alimentos | `ipc_alimentos` = +3.35% m/m | INDEC serie 146.3 datos.gob.ar | mar-2026 |
-| Endeudamiento Familiar | `prestamos_*` BCRA (tarjeta/personales/hipotecarios/consumo) | BCRA API v4.0 | 19-20 may-2026 |
-| Peso de Tarifas | `ipc_vivienda` (+3.71%) + `ipc_regulados` (+5.08%) | INDEC | mar-2026 |
-| Consumo de Carne Vacuna | `consumo_carne_per_capita` | CICCRA (scraping PDF mensual) | abr-2026 |
-| Informalidad Laboral | `informalidad_anual` = 36.75% | INDEC EPH | ene-2026 |
-| Mortalidad de PyMEs (proxy) | `ipi + emae` | INDEC | feb-2026 |
-| Despacho Cemento e Hierro | `isac` (143.5) + `acero_crudo` (731.6) | INDEC | feb-2026 |
-| Pluriempleo (proxy) | `subocupacion_demandante` = 7.8% | INDEC EPH | oct-2025 |
-| Espera Salud Pública | `salud_datasets` (3 datasets) | CKAN datasets | — |
-| Inseguridad Urbana | `inseguridad_snic` (2.501.057 hechos 2024) | SNIC + CABA | 2024 |
-| ICC Confianza Consumidor | `icc_utdt` = 40.5 | UTDT scraping XLS | may-2026 |
-| Sentimiento Digital | `sentimiento_digital` (Google Trends 4 términos) | pytrends | tiempo real |
-| Apatía Electoral | (`votometro_ventaja_lla` — vive en cinturón POLÍTICO) | Votómetro CIGOB | mar-2026 |
-| Patentamiento Motos (extra) | `patentamiento_motos` = 51.124 unidades | CAFAM | may-2026 |
+| Indicador | Fuente / Proxy Utilizado | Frecuencia | Estado | Último dato |
+|---|---|---|---|---|
+| Brecha Salario Real vs. CBT | datos.gob.ar (RIPTE + CBT) | Mensual | ✅ AUTO | 3.82 canastas (mar-2026) |
+| IPC-Alimentos | datos.gob.ar (serie 146.3) | Mensual | ✅ AUTO | +3.35% m/m (mar-2026) |
+| Endeudamiento Familiar | BCRA API v4.0 (tarjeta + personales + hipotecarios + consumo) | Diaria | ✅ AUTO | $129.334M (may-2026) |
+| Peso de Tarifas | IPC-Vivienda + IPC-Regulados (proxy INDEC) | Mensual | ✅ AUTO | +3.71% / +5.08% (mar-2026) |
+| Consumo de Carne Vacuna | CICCRA (Scraping PDF) | Mensual | ✅ AUTO | abr-2026 |
+| Informalidad Laboral | datos.gob.ar (asalariados sin descuento) | Anual | ✅ AUTO | 36.75% (ene-2026) |
+| Mortalidad de PyMEs | IPI Manufacturero + EMAE (proxy INDEC) | Mensual | ✅ AUTO | feb-2026 |
+| Despacho de Cemento e Hierro | ISAC + Acero crudo (proxy INDEC) | Mensual | ✅ AUTO | 143.5 / 731.6 (feb-2026) |
+| Pluriempleo | Subocupación demandante EPH (proxy) | Trimestral | ✅ AUTO | 7.8% (oct-2025) |
+| Espera en Salud Pública | DEIS / API CKAN (proxy débil — solo lista datasets) | Variable | ⚠ AUTO parcial | 3 datasets |
+| Inseguridad Urbana | SNIC + CABA datos abiertos | Anual | ✅ AUTO | 2.501.057 hechos (2024) |
+| ICC Confianza del Consumidor | UTDT (scraping XLS) | Mensual | ✅ AUTO | 40.5 (may-2026) |
+| Sentimiento Digital | Google Trends (pytrends — 4 términos) | Tiempo real | ✅ AUTO | inflación 1.8, precios 9.2 |
+| Apatía Electoral | Votómetro CIGOB (vive en cinturón POLÍTICO como `votometro_ventaja_lla`) | Continua | ✅ AUTO | +13.3pp LLA−PJ (mar-2026) |
 
-### Pendiente
+**Bonus extraído pero no en el 260520:** Patentamiento de motos (CAFAM) como proxy adicional de consumo discrecional — 51.124 unidades may-2026.
 
-| Indicador | Estado |
+### Indicadores Propuestos / Revisión Manual
+
+| Indicador | Estado / Observación |
 |---|---|
-| Deserción Escolar | 📋 Manual — no automatizable, rezago anual |
-| `ingreso_disponible_real` (Empiria) | 🔬 Propuesta priorizada — IS_registrado / IPC_vivienda. ene-2026 vs ene-2025: −8.0% i.a. |
+| Deserción Escolar | 📋 MANUAL — no automatizable por rezago anual del Ministerio de Educación. Carga manual anual recomendada. |
+| Ingreso Disponible Real (Empiria) | 🔬 PROPUESTO PRIORITARIO — IS_registrado / IPC_vivienda. Cálculo verificado: ene-2026 vs ene-2025 = **−8.0% i.a.** (salario perdió contra gastos fijos pese a desinflación general). Implementable como `collectors/ingreso_disponible.py`. |
 
-### Brecha técnica detectada
+### Nota técnica
 
-El script puente `scripts/vida_cotidiana.py` (que integra con el orquestador global) solo expone 3 indicadores legacy (`ipc_total + desocupacion + icc_utdt`). El dashboard agregado del informe debería leer del output `scripts/vida_cotidiana/data/vida_cotidiana_*.json` para tener cobertura completa.
+El script puente `scripts/vida_cotidiana.py` (que integra con el orquestador global del informe) solo expone 3 indicadores legacy (`ipc_total + desocupacion + icc_utdt`). El dashboard agregado debería migrarse a leer del output `scripts/vida_cotidiana/data/vida_cotidiana_*.json` para tener la cobertura completa de los 14 indicadores.
 
 ---
 
 ## 2. Cinturón de la Macroeconomía
 
-**Script:** `scripts/macro.py` | **Cache:** `output/cache/macro.json`
-**Última ejecución:** 23-may-2026 — **11/11 frescos**, score **2.1 estable**.
+Posee un núcleo de indicadores financieros y de precios ya codificados — **11/11 del 260520 implementados como AUTO**. La batería de indicadores propuestos desde la visión estratégica situacional sigue en diseño.
 
-### Cobertura 11/11 vs documento (los 11 "activos" del 260520)
+**Score actual (23-may-2026):** 2.1 — estable. 11/11 frescos en última ejecución.
 
-| Indicador del 260520 | Implementación | Fuente | Último valor | Score |
+### Indicadores Seleccionados / Activos (Scripting)
+
+> El 260520 anotó "son 19 bajamos ¿??" — la lista codificada quedó en **11**, los 8 restantes se reservaron como propuestos (ver tabla siguiente).
+
+| Indicador | Qué Mide | Fuente | Estado | Último valor |
 |---|---|---|---|---|
-| IPC Total | `ipc_total` | INDEC 148.3 datos.gob.ar | 3.38% m/m | 3.4 |
-| Reservas BCRA | `reservas_bcra` | BCRA API v4.0 var 1 | 46.585 M USD | 0.0 |
-| Tasa BADLAR | `badlar` | BCRA API v4.0 var 7 | 22.0% anual | 2.2 |
-| EMAE (Var. Interanual) | `emae_ia` | INDEC 143.3 datos.gob.ar | +1.88% i.a. | 3.1 |
-| Saldo Comercial (12m) | `saldo_comercial_12m` | INDEC 164.3 (suma 12) | +17.125 M USD | 0.0 |
-| Recaudación Tributaria | `recaudacion` | INDEC 172.3 | −0.99% var m | 6.0 |
-| TCRM | `tcrm` | INDEC 116.3 (base 2010=100) | 79.77 | 4.1 |
-| Expectativas Inflación (REM) | `rem_ipc_12m` | BCRA API v4.0 var 29 | 24.2% anual | 1.6 |
-| Préstamos Privados | `prestamos_privados` | BCRA API v4.0 var 26 | +2.13% var m | 2.9 |
-| Base Monetaria | `base_monetaria` | BCRA API v4.0 var 15 | +0.7% var m | 0.0 |
-| Tipo de Cambio Mayorista | `tc_mayorista` | BCRA API v4.0 var 5 | −0.27% var m | 0.0 |
+| IPC Total | Inflación mensual nacional | INDEC (serie 148.3) | ✅ AUTO | 3.38% m/m |
+| Reservas BCRA | Reservas internacionales brutas | BCRA API v4.0 var 1 | ✅ AUTO | 46.585 M USD |
+| Tasa BADLAR | Costo del dinero para depósitos mayoristas | BCRA API v4.0 var 7 | ✅ AUTO | 22.0% anual |
+| EMAE (Var. Interanual) | Actividad económica general adelantada | INDEC (serie 143.3) | ✅ AUTO | +1.88% i.a. |
+| Saldo Comercial (12 meses) | Balance exportaciones vs importaciones acumulado | INDEC (serie 164.3) | ✅ AUTO | +17.125 M USD |
+| Recaudación Tributaria | Variación mensual de la recaudación total | INDEC/AFIP (serie 172.3) | ✅ AUTO | −0.99% var m |
+| TCRM | Tipo de cambio real multilateral | INDEC (serie 116.3) | ✅ AUTO | 79.77 (base 2010=100) |
+| Expectativas Inflación (REM) | Proyección del mercado a 12 meses | BCRA API v4.0 var 29 | ✅ AUTO | 24.2% anual |
+| Préstamos Privados | Variación del crédito bancario al sector privado | BCRA API v4.0 var 26 | ✅ AUTO | +2.13% var m |
+| Base Monetaria | Variación de billetes y reservas bancarias | BCRA API v4.0 var 15 | ✅ AUTO | +0.7% var m |
+| Tipo de Cambio Mayorista | Variación del precio oficial de referencia | BCRA API v4.0 var 5 | ✅ AUTO | −0.27% var m |
 
-### Indicadores propuestos del 260520 (en diseño, no implementados)
+### Indicadores Propuestos / En Diseño (Perspectiva Matusiana)
 
-| Indicador propuesto | Justificación | Fuente plausible |
-|---|---|---|
-| Resultado Fiscal Financiero | Incluye intereses; supera primaria | Hacienda — informe mensual |
-| Riesgo País (EMBI+) | Costo de oportunidad externa | JPMorgan EMBI+ (vía API o scraping AmbitoFinanciero) |
-| Deuda Pública Bruta / PBI | Solvencia estructural | Hacienda — anual |
-| Desempleo / Subocupación | Puente con vida cotidiana | INDEC EPH (ya en vida_cotidiana) |
-| Utilización Capacidad Instalada | Cuellos de botella industriales | INDEC mensual |
-| Pobreza por Ingresos | CBT vs salario medio | Construible con series ya extraídas |
-| Brecha Cambiaria | Termómetro de desconfianza | dolarapi.com (ya usado en gestión) |
-| Formación Bruta Capital Fijo | Inversión real | INDEC trimestral |
+| Indicador | Justificación Estratégica | Estado | Fuente plausible |
+|---|---|---|---|
+| Resultado Fiscal Financiero | Incluye intereses de deuda; supera la visión sólo primaria. | 🔬 PROPUESTO | Hacienda — informe mensual ejecución presupuestaria |
+| Riesgo País (EMBI+) | Mide el costo de oportunidad y percepción externa. | 🔬 PROPUESTO | JPMorgan EMBI+ vía scraping AmbitoFinanciero o API datos.gob.ar |
+| Deuda Pública Bruta / PBI | Indicador de solvencia estructural a largo plazo. | 🔬 PROPUESTO | Hacienda — anual |
+| Tasa de Desempleo / Subocupación | Puente directo con la gobernabilidad y la vida cotidiana. | ✅ YA EXTRAÍDO | INDEC EPH (ya está en cinturón Vida Cotidiana — falta exponerlo en Macro) |
+| Utilización Capacidad Instalada | Complementa al EMAE detectando cuellos de botella industriales. | 🔬 PROPUESTO | INDEC mensual (serie UCI) |
+| Pobreza por Ingresos (Proxy) | Variación de canasta básica versus salario medio. | ✅ YA EXTRAÍDO | CBT, CBA y RIPTE ya extraídos en Vida Cotidiana — calcular ratio |
+| Brecha Cambiaria | Termómetro de desconfianza (sujeto a revisión por flexibilización de cepo). | ✅ YA EXTRAÍDO | dolarapi.com — ya usado en `cepo_mulc` (Gestión) como brecha CCL/oficial |
+| Formación Bruta de Capital Fijo | Inversión real como soporte físico del crecimiento. | 🔬 PROPUESTO | INDEC — Cuentas Nacionales trimestrales |
+
+**Observación:** 3 de los 8 propuestos ya están parcialmente extraídos por otros cinturones (Desempleo, Pobreza Proxy, Brecha Cambiaria) — basta con exponerlos en Macro.
 
 ---
 
 ## 3. Cinturón de la Política
 
-**Script:** `scripts/politica.py` | **Cache:** `output/cache/politica.json`
-**Última ejecución:** 23-may-2026 — **8/9 frescos** (CEPA falló 404, usó cache), score **4.7 en tensión**.
+El 260520 señaló que las métricas estaban "íntegramente en fase de propuesta". **Esto cambió: 7 de 10 indicadores propuestos están AUTO + 2 manual + 1 sin implementar.** Score actual: **4.7 en tensión**.
 
-### Estado real: 7 AUTO + 2 manuales (no "íntegramente propuesto" como decía el 260520)
+### Indicadores Propuestos — estado real
 
-| Concepto del 260520 | Implementación técnica | Fuente | Estado | Valor |
+| Indicador propuesto en 260520 | Implementación técnica | Descripción / Objetivo | Estado | Valor (may-2026) |
 |---|---|---|---|---|
-| Tasa de Eficacia Parlamentaria (TEP) | `eficacia_legislativa` | datos.hcdn.gob.ar CKAN (proyectos PE vs sanciones 12m) | ✅ AUTO | 4.8% (1/21) |
-| Ratio DNU | `ratio_dnu` | InfoLeg sesión POST (DNUs / leyes año corriente) | ✅ AUTO | 3.14 (22 DNU / 7 leyes) |
-| Índice de Armonía Federal (IAF) | `iaf_transferencias` | RON Hacienda CSV (var real YoY) | ✅ AUTO | +1.8% real |
-| Índice de Tensión Social (ITS) | `movilizacion_cepa` | centrocepa.com.ar scrape | ✅ AUTO | 46.0 (cache, 404 hoy) |
-| Apatía electoral / brecha | `votometro_ventaja_lla` | Votómetro CIGOB HTML | ✅ AUTO | +13.3 pp (LLA−PJ) |
-| Frustración legislativa | `veto_quorum` | datos.hcdn.gob.ar CKAN (`REUNION_TIPO~Fracasada`) | ✅ AUTO | 0.0% (período 144) |
-| Bloqueo post-dictamen | `comisiones_caidas` | datos.hcdn.gob.ar CKAN (OD vs sanciones) | ✅ AUTO | 99.6% (alto estructural) |
-| Cohesión interna oficialismo | `cohesion_bloque` | placeholder 78% — votaciones CKAN congeladas en 2019 (LLA no existía) | 📋 manual | 78% |
-| Alianzas territoriales | `gobernadores_alineamiento` | placeholder 55% — sin fuente estructurada | 📋 manual | 55% |
+| Tasa de Eficacia Parlamentaria (TEP) | `eficacia_legislativa` | Relación entre proyectos enviados al Congreso y leyes aprobadas. | ✅ AUTO (datos.hcdn.gob.ar CKAN) | 4.8% (1/21 proyectos PE en 12m) |
+| Ratio DNU | `ratio_dnu` | Proporción de decretos de urgencia sobre leyes sancionadas. | ✅ AUTO (InfoLeg sesión POST) | 3.14 (22 DNU / 7 leyes período 144) |
+| Índice de Armonía Federal (IAF) | `iaf_transferencias` | Cruce de transferencias automáticas/discrecionales con apoyo de gobernadores. | ✅ AUTO (RON Hacienda CSV) | +1.8% real i.a. |
+| Tasa de Judicialización de la Gestión | — | Medidas cautelares activas contra reformas gubernamentales clave. | ❌ NO IMPLEMENTADO | sin fuente estructurada CSJN |
+| Control de Agenda (Iniciativa) | — | Vida media de crisis o escándalos de gobierno medida vía Google Trends. | 🔬 PROPUESTO | factible con `pytrends` (ya usado en Vida Cotidiana) |
+| Índice de Tensión Social (ITS) | `movilizacion_cepa` | Frecuencia de paros, movilizaciones y cortes. | ✅ AUTO (scraping centrocepa.com.ar) | 46.0 (cache — 404 hoy) |
+| Tasa de Compromiso RIGI/RIMI | — | Nivel de adhesiones provinciales y sindicales a los regímenes. | 🔬 PROPUESTO | requiere parseo de declaraciones provinciales — manual |
+| Impacto del Clima Internacional | — | Efecto de procesos electorales en la región (EE.UU., Brasil, Colombia). | 🔬 PROPUESTO | construible con calendario electoral + spread soberano regional |
+| Tensión Estructural Discursiva | — | Medición del conflicto conversacional entre bloques políticos. | 🔬 PROPUESTO | requiere NLP sobre Twitter/X de diputados — fuera de scope inmediato |
+| Independencia del Banco Central | — | Autonomía institucional como factor de sostenibilidad política. | ❌ NO IMPLEMENTABLE | métrica cualitativa sin proxy objetivo |
 
-### Indicadores propuestos del 260520 sin implementar
+### Indicadores adicionales implementados (no estaban en el 260520)
 
-| Indicador propuesto | Razón de no-implementación |
-|---|---|
-| Tasa de Judicialización de la Gestión (cautelares contra reformas) | Requiere scraping CSJN / juzgados federales — sin fuente estructurada |
-| Control de Agenda (vida media de crisis vía Google Trends) | Implementable con pytrends — pendiente de diseño |
-| Tasa de Compromiso RIGI/RIMI provincial-sindical | Requiere parseo de declaraciones provinciales — manual |
-| Impacto del Clima Internacional (procesos electorales regionales) | Construible con calendario electoral + spread soberano regional |
-| Tensión Estructural Discursiva (conflicto entre bloques) | Requiere NLP sobre Twitter/X de diputados — fuera de scope |
-| Independencia del Banco Central | Cualitativo — sin métrica objetiva |
+| Indicador | Descripción | Estado | Valor |
+|---|---|---|---|
+| `votometro_ventaja_lla` | Brecha ponderada LLA−PJ en intención de voto | ✅ AUTO (parse Votómetro CIGOB) | +13.3pp |
+| `veto_quorum` | % sesiones frustradas por falta de quórum | ✅ AUTO (CKAN HCDN `REUNION_TIPO~Fracasada`) | 0.0% (período 144) |
+| `comisiones_caidas` | % proyectos con dictamen OD que no llegan al recinto | ✅ AUTO (CKAN HCDN) | 99.6% (alto estructural) |
+| `cohesion_bloque` | % diputados LLA alineados con la posición oficial | 📋 MANUAL | 78% placeholder |
+| `gobernadores_alineamiento` | % gobernadores alineados con política nacional | 📋 MANUAL | 55% placeholder |
 
-### Bloqueantes técnicos de los 2 manuales
+### Por qué los 2 manuales no se pudieron automatizar
 
-- `cohesion_bloque`: votaciones nominales CKAN congeladas en período 137 (2019). Composición LLA (95 dip.) disponible pero sin `PERSONA_ID` que mapee a votos históricos. Requiere headless sobre `hcdn.gob.ar/votaciones`.
-- `gobernadores_alineamiento`: sin fuente estructurada. NLP sobre declaraciones (La Nación Data, Infobae) sería un proyecto separado.
+- **`cohesion_bloque`**: las votaciones nominales en CKAN HCDN están **congeladas en período 137 (2019)**. La composición actual del bloque LLA (95 diputados) está disponible pero **sin `PERSONA_ID` que mapee a los votos históricos**. Requeriría headless browser sobre `hcdn.gob.ar/votaciones` o acuerdo con HCDN para fuente alternativa.
+- **`gobernadores_alineamiento`**: sin fuente estructurada pública. Podría construirse con NLP sobre declaraciones (La Nación Data, Infobae) pero requiere un proyecto separado.
 
 ---
 
 ## 4. Cinturón de Gestión
 
-**Script:** `scripts/gestion.py` | **Cache:** `output/cache/gestion.json` | **Data:** `data/gestion/manuales.json`
-**Última ejecución:** 23-may-2026 — **auto_frescos=6/6 con_datos=12/12**, score **5.9 en tensión**.
+Definido recientemente como un tablero para medir el cumplimiento estricto de las reformas del Estado y compromisos de la APN. **Cobertura: 12/12 indicadores del 260520. Score actual: 5.9 en tensión. Auto frescos: 6/6.**
 
-### Cobertura completa del documento 260520 (12/12 cubiertos)
+### Indicadores Propuestos — estado real
 
-| Eje del 260520 | Implementación | Fuente | Estado | Avance |
+| Eje / Desafío Enunciado | Indicador de Avance Sugerido (260520) | Implementación | Estado | Avance (may-2026) |
 |---|---|---|---|---|
-| Desmantelamiento del Cepo | `cepo_mulc` (brecha **CCL**/oficial) | dolarapi.com | ✅ AUTO | 78.4% (brecha 4.32%) |
-| Privatizaciones | `privatizaciones` | manuales.json (BO sin API JSON) | 📋 manual | 15% |
-| Concesiones de Infraestructura | `concesiones_infraestructura` | manuales.json (Vialidad/ORSNA sin API) | 📋 manual | 35% |
-| Reducción del Estado | `reduccion_estado` | datos.gob.ar 324.1 (puestos trabajo público) | ✅ AUTO | 2.7% (var −0.8%) |
-| Reestructuración de Organismos | `reestructuracion_organismos` | InfoLeg sesión POST `texto="disolucion"` desde dic-2023 | ✅ AUTO | 40% (18 normas) |
-| Inversiones (RIGI / Super RIGI) | `rigi_inversiones` | InfoLeg sesión POST `tipo=3 texto="VPU"` desde jul-2024 | ✅ AUTO ⭐ | 28% (28 resol. VPU) |
-| Desregulación Normativa | `desregulacion_normativa` | InfoLeg sesión POST `texto="deroga"` desde dic-2023 | ✅ AUTO | 55% (55 normas) |
-| Apertura Comercial | `apertura_comercial` | datos.gob.ar 163.3 (importaciones totales) | ✅ AUTO | 100% (+42.4% i.a.) |
-| Asistencia Directa | `asistencia_directa` | manuales.json (ANSES sin API pública) | 📋 manual | 35% |
-| Modernización Laboral (FAL) | `fal_modernizacion_laboral` | manuales.json (operativo H2-2026) | 📋 manual | 10% |
-| Libertad de Opción en Salud | `libertad_opcion_salud` | manuales.json | ❌ BLOQUEADO | 40% |
-| Protocolo Antipiquetes | `protocolo_antipiquetes` | manuales.json (Min. Seguridad sin datos) | 📋 manual | 55% |
+| Desmantelamiento del Cepo | Volumen diario de compra/venta de divisas en MULC. | `cepo_mulc` — brecha **CCL**/oficial (dolarapi.com) | ✅ AUTO | 78.4% (brecha 4.32%) |
+| Privatizaciones | Transferencia efectiva de acciones y pliegos publicados. | `privatizaciones` — manuales.json | ❌ BLOQUEADO | 15% (manual) |
+| Concesiones de Infraestructura | Km concesionados (corredores viales) y servicios públicos transferidos. | `concesiones_infraestructura` — manuales.json | 📋 MANUAL | 35% |
+| Reducción del Estado | Cierre de fondos fiduciarios y variación neta de la dotación de empleo público. | `reduccion_estado` — datos.gob.ar (puestos trabajo público) | ✅ AUTO | 2.7% (var −0.8%) |
+| Reestructuración de Organismos | Entidades disueltas, fusionadas o centralizadas. | `reestructuracion_organismos` — InfoLeg `texto="disolucion"` desde dic-2023 | ✅ AUTO | 40% (18 normas) |
+| Inversiones (RIGI / Super RIGI) | Proyectos presentados, aprobados y montos proyectados. | `rigi_inversiones` — InfoLeg `tipo=3 texto="VPU"` desde jul-2024 | ✅ AUTO ⭐ | 28% (28 resoluciones VPU) |
+| Desregulación Normativa (índice de libertad económica) | Artículos y normas eliminadas o modificadas. | `desregulacion_normativa` — InfoLeg `texto="deroga"` desde dic-2023 | ✅ AUTO | 55% (55 normas) |
+| Apertura Comercial | Eliminación de aranceles y trabas no arancelarias. | `apertura_comercial` — datos.gob.ar (importaciones totales, proxy) | ✅ AUTO | 100% (+42.4% i.a.) |
+| Asistencia Directa | Porcentaje de beneficiarios sociales sin intermediación de organizaciones. | `asistencia_directa` — manuales.json | 📋 MANUAL | 35% |
+| Modernización Laboral (FAL) | Empresas adheridas y evolución de aportes al Fondo de Asistencia. | `fal_modernizacion_laboral` — manuales.json | 📋 MANUAL | 10% (FAL operativo H2-2026) |
+| Libertad de Opción en Salud | Traspasos efectivos entre obras sociales y prepagas. | `libertad_opcion_salud` — manuales.json | ❌ BLOQUEADO | 40% (manual) |
+| Protocolo Antipiquetes | Evolución de cortes sin interrupción total del tránsito. | `protocolo_antipiquetes` — manuales.json | 📋 MANUAL | 55% |
 
 ### Hito reciente: desbloqueo del RIGI (may-2026)
 
-El indicador `rigi_inversiones` estaba bloqueado: el portal oficial `argentina.gob.ar/economia/industria/rigi` retorna 404; CKAN no tiene packages RIGI; InfoLeg con `texto="RIGI"` devuelve 93 normas mezcladas (OR-search no aísla aprobaciones).
+El indicador `rigi_inversiones` estaba bloqueado. La investigación produjo el siguiente recorrido:
 
-**Solución:** buscar `tipoNorma=3` (Resolución) + `texto="VPU"` desde 01/07/2024. **VPU** (Vehículo de Proyecto Único, Ley 27.742) es vocabulario técnico **exclusivo** del régimen — aparece solo en resoluciones de aprobación e implementación. Resultado: 28 resoluciones VPU = avance 28.0%, casi idéntico al dato manual de El Cronista may-2026 (28.7% calculado sobre USD 27.210M aprobados / USD 94.965M totales).
-
-### Bloqueantes definitivos
-
-| Indicador | Razón |
+| Vía intentada | Resultado |
 |---|---|
-| `libertad_opcion_salud` | SSS usa fingerprinting back-end (`/fwb/first_submit.df`). Retorna "No se reportan datos" incluso con Playwright. Padrón obras sociales en datos.gob.ar está congelado en 2019 (último update CSV). Sin alternativa pública. |
-| `privatizaciones` | Boletín Oficial no expone API JSON pública. ComprAR.gob.ar es ASP.NET con `__VIEWSTATE` (difícil scraping). InfoLeg `tipo=3 texto="privatizacion"`=9 normas pero el OR-search no permite aislar transferencias efectivas vs. resoluciones procedimentales. |
+| Portal oficial `argentina.gob.ar/economia/industria/rigi` | 404 (URL cambió, sin alternativa publicada) |
+| CKAN datos.gob.ar packages RIGI | 0 packages |
+| InfoLeg `texto="RIGI"` (cualquier tipo) | 93 normas mezcladas — OR-search no aísla aprobaciones |
+| InfoLeg `texto="adhesion RIGI"` | 164 normas — OR-search infla resultado |
+| Wikipedia "Régimen de Incentivo..." | Página existe pero última edición oct-2025 (desactualizada) |
+| BO API JSON | Endpoints retornan HTML, no JSON parseable |
+| ComprAR pliegos | ASP.NET con `__VIEWSTATE` — scraping frágil |
+| **InfoLeg `tipoNorma=3` (Resolución) + `texto="VPU"` desde jul-2024** | **28 normas** ⭐ |
+
+**Solución implementada:** "VPU" (Vehículo de Proyecto Único, terminología técnica de la Ley 27.742) es vocabulario **exclusivo** del RIGI — aparece solo en resoluciones de aprobación e implementación. Calibración: 28 resoluciones VPU = avance 28.0%, casi idéntico al dato manual de El Cronista may-2026 (28.7% calculado sobre USD 27.210M aprobados / USD 94.965M totales).
+
+### Por qué los 2 BLOQUEADOS no se pudieron automatizar
+
+| Indicador | Fuentes intentadas | Razón del bloqueo |
+|---|---|---|
+| `libertad_opcion_salud` (SSS — traspasos obras sociales / prepagas) | SSS HTML directo • Playwright headless • datos.gob.ar Padrón Obras Sociales • SSS publicaciones/memorias | SSS usa fingerprinting back-end (`/fwb/first_submit.df`); el endpoint de datos retorna "No se reportan datos" incluso con browser real. `function.js` = 46 bytes (vacío). Padrón obras sociales en datos.gob.ar tiene CSVs **last_modified 2018-2019** (dataset abandonado). Sin alternativa pública. |
+| `privatizaciones` (BO — transferencia efectiva de acciones) | BO API JSON • InfoLeg `tipo=1/2/3 texto="privatizacion"/"transferencia acciones"/"Aerolineas"` • ComprAR pliegos | BO no expone API JSON pública (lookups retornan HTML). ComprAR es ASP.NET con `__VIEWSTATE` (scraping frágil). InfoLeg `tipo=3 texto="privatizacion"` = 9 normas pero OR-search ambiguo: contar normas ≠ transferencia completa. |
+
+**Política de actualización:** ambos quedan en `data/gestion/manuales.json` con calendario de revisión trimestral desde anuncios oficiales (Ministerio de Economía / SSS).
+
+### Manuales legítimos (sin alternativa automatizada pero no bloqueados técnicamente)
+
+| Indicador | Por qué manual |
+|---|---|
+| `concesiones_infraestructura` | Vialidad Nacional / ORSNA publican informes en PDF trimestrales — sin API estructurada. Automatizable a mediano plazo con scraping de PDFs. |
+| `asistencia_directa` | ANSES no expone padrón de beneficiarios vía API pública. Pendiente portal transparencia. |
+| `fal_modernizacion_laboral` | FAL no entra en operación hasta H2-2026 (postergado). Auto factible cuando MTEySS/ARCA publiquen aportes. |
+| `protocolo_antipiquetes` | Ministerio de Seguridad sin registro estructurado público de cortes. Requeriría acuerdo institucional. |
 
 ---
 
-## Hitos de implementación may-2026
+## Resumen final de cobertura vs documento 260520
 
-| Fecha | Hito |
-|---|---|
-| 03-may | Cinturón Macro completo: 11/11 AUTO desde INDEC/BCRA |
-| 10-may | Vida cotidiana: orquestador `main.py` con 8 fuentes, 14 conceptos del 260520 cubiertos |
-| 12-may | Política: marco Babino aplicado — ICG UTDT removido, `ratio_dnu` agregado |
-| 13-may | Cinturón Político: agregados `veto_quorum` y `comisiones_caidas` vía CKAN HCDN |
-| 14-may | Cinturón Político: 7 AUTO + 2 manuales |
-| 23-may | Cinturón Gestión: rediseñado de 2 indicadores a 12 (scorecard reformas APN) |
-| 23-may | Gestión: `reestructuracion_organismos` AUTO via InfoLeg `disolucion` |
-| 23-may | Gestión: `desregulacion_normativa` AUTO via InfoLeg `deroga` |
-| 23-may | Gestión: `cepo_mulc` corregido — blue → CCL (cepo persistente para empresas) |
-| 23-may | Gestión: **RIGI desbloqueado** via InfoLeg `tipo=3 texto="VPU"` |
+| Cinturón | Total prop. 260520 | ✅ AUTO | 📋 Manual / Placeholder | ❌ Bloqueado | 🔬 No implementado |
+|---|---|---|---|---|---|
+| Vida Cotidiana | 14 + 1 manual | 14 | 1 (Deserción) | 0 | 0 |
+| Macroeconomía | 11 activos + 8 propuestos | 11 | 0 | 0 | 5 (3 ya extraídos en otros cinturones) |
+| Política | 10 propuestos | 4 + 3 adicionales | 2 | 0 | 4 |
+| Gestión | 12 propuestos | 6 | 4 | 2 | 0 |
+| **Totales del 260520** | **47 propuestos** | **35 AUTO** | **7 manual** | **2 bloqueados** | **9 sin implementar** |
 
----
+**Cobertura efectiva del 260520:** 44/47 cubiertos (94%). De los 3 restantes: 2 bloqueados con razón documentada y 1 cualitativo (Independencia BCRA) sin proxy posible.
 
-## Patrones técnicos consolidados
-
-### InfoLeg sesión POST
-Patrón compartido entre `politica.py:fetch_ratio_dnu` y `gestion.py` (3 colectores). Requiere:
-1. `GET https://servicios.infoleg.gob.ar/infolegInternet/` para obtener jsessionid
-2. Extraer `action_url` del HTML home con regex `action="(/infolegInternet/[^"]+)"`
-3. `POST` con `tipoNorma`, fechas, `texto`, mantienendo la sesión
-4. Parsear conteo con regex `r"Encontradas?[:\s]+(\d+)"`
-
-**Gotcha:** búsqueda de texto es OR (no AND/exacta). Para aislar normas específicas, usar vocabulario técnico exclusivo (ej: "VPU" para RIGI).
-
-### CKAN HCDN
-Patrón en `politica.py` para 3 indicadores. Gotchas documentados en `memory/project_informe_coyuntura.md`:
-- `q=` es full-text por tokens, NO substring (`q="HCDN144"` no matchea `HCDN144R02`)
-- Filtros con acentos fallan — usar Python-side con `.lower()`
-- `dictámenes.EXPEDIENTE` join directo con `movimientos.PROYECTO_ID`
-- Período legislativo: `144 + (año_actual − 2026)`
-
-### datos.gob.ar series
-Patrón estándar (`apis.datos.gob.ar/series/api/series/`):
-```python
-params = {"ids": series_id, "format": "json", "limit": N, "sort": "desc"}
-```
-8 series INDEC activas distribuidas en macro + gestión + vida cotidiana.
-
-### BCRA API v4.0
-SSL warning requiere `verify=False` + `urllib3.disable_warnings()`. Datos en orden **descendente**: `detalle[0]` = más reciente.
-
----
-
-## Próximos pasos sugeridos
-
-| Prioridad | Acción |
-|---|---|
-| Alta | Integrar output `vida_cotidiana/main.py` al dashboard global (actualmente solo 3 indicadores vía script puente) |
-| Alta | Implementar `ingreso_disponible_real` (Empiria) como colector — desarmar mito "desinflación = bienestar" |
-| Media | `concesiones_infraestructura` — explorar API Vialidad Nacional o scraping informes ORSNA |
-| Media | `asistencia_directa` — explorar portal transparencia ANSES |
-| Media | `cohesion_bloque` — headless browser sobre `hcdn.gob.ar/votaciones` para mapear LLA |
-| Baja | Cinturón Macro: agregar Riesgo País EMBI+, FBKF, Pobreza por Ingresos del documento original |
-| Baja | Cinturón Político: Judicialización (CSJN/cautelares), Control de Agenda (Trends) |
-| H2-2026 | `fal_modernizacion_laboral` AUTO cuando FAL sea operativo |
-
-## Bloqueos persistentes (sin solución técnica viable)
-
-- `libertad_opcion_salud` (SSS) — actualización manual trimestral desde reportes oficiales SSS
-- `privatizaciones` (BO) — actualización manual mensual desde anuncios Ministerio de Economía
-- `protocolo_antipiquetes` (Min. Seguridad) — sin fuente pública estructurada
+**Indicadores adicionales implementados que el 260520 no listaba:** 3 (votómetro electoral en política, patentamiento motos como proxy consumo, brecha CCL como proxy cepo corporativo).

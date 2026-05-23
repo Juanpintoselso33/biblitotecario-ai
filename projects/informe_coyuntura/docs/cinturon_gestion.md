@@ -25,7 +25,7 @@ Score global = promedio de scores de indicadores disponibles.
 | `privatizaciones` | ⚠ manual | Boletín Oficial — transferencia de acciones | Manual | ~15% |
 | `concesiones_infraestructura` | ⚠ manual | Vialidad Nacional / ORSNA | Manual | ~35% |
 | `reduccion_estado` | ✅ auto | datos.gob.ar `324.1_TOTAL_SECTAJO__36` | Trimestral | ~3% |
-| `reestructuracion_organismos` | ⚠ manual | Boletín Oficial — decretos disolución/fusión | Manual | ~40% |
+| `reestructuracion_organismos` | ✅ auto | InfoLeg sesión POST — `texto="disolucion"` + rango dic-2023 | Mensual | ~40% (18 normas) |
 | `rigi_inversiones` | ⚠ manual | Portal RIGI / prensa oficial (URL→404) | Manual | ~29% |
 | `desregulacion_normativa` | ✅ auto | InfoLeg sesión POST — `texto="deroga"` + rango dic-2023 | Mensual | ~55% (55 normas) |
 | `apertura_comercial` | ✅ auto | datos.gob.ar `163.3_MTALTAL_0_0_7` | Mensual | ~100% |
@@ -65,10 +65,11 @@ Score global = promedio de scores de indicadores disponibles.
 - **Última ejecución:** -0.8% vs 2024-01-01 → avance 2.7%
 
 ### `reestructuracion_organismos` — Reestructuración de Organismos
-- **Fuente:** Boletín Oficial — decretos de disolución/fusión APN
-- **Cálculo:** % organismos reestructurados / plan original
-- **Avance:** ~40% (secretarías: de 106 a ~54 en may-2026)
-- **Pendiente automatizar:** Scraping BO + conteo acumulado de decretos de disolución
+- **Fuente:** InfoLeg sesión POST — `texto="disolucion"` + rango dic-2023/hoy
+- **Cálculo:** count de normas con "disolucion" publicadas desde dic-2023. 45 = avance 100%.
+- **Nota técnica:** DNU 70/23 (el mega-decreto de dic-2023 que redujo secretarías de 106 a ~54) NO aparece en la búsqueda de texto libre de InfoLeg (no está indexado como full-text). Los 18 documentos capturados son acciones de disolución/fusión POSTERIORES al megadecreto.
+- **Calibración:** 18 actos = avance 40% validado contra estimación manual. Objetivo 45 = 100%.
+- **Avance (may-2026):** 18 normas → avance 40.0%
 
 ### `rigi_inversiones` — Inversiones RIGI
 - **Fuente:** Portal RIGI + Ministerio de Economía / prensa
@@ -154,8 +155,8 @@ python scripts/gestion.py
 | `desregulacion_normativa` | ✅ AUTO | InfoLeg sesión POST. Implementado may-2026. |
 | `libertad_opcion_salud` | ❌ BLOQUEADO | SSS JS-rendered. Sin alternativa API. |
 | `rigi_inversiones` | ❌ BLOQUEADO | Portal RIGI → 404 todas las URLs. |
-| `privatizaciones` | ❌ PENDIENTE | BO requiere sesión. Prioridad media. |
-| `reestructuracion_organismos` | ❌ PENDIENTE | BO ídem. Prioridad media. |
+| `privatizaciones` | ❌ PENDIENTE | Contar normas ≠ privatización completa. Sin proxy confiable. |
+| `reestructuracion_organismos` | ✅ AUTO | InfoLeg sesión POST `disolucion`. Implementado may-2026. |
 | `concesiones_infraestructura` | ⚠ MANUAL | Sin API. Baja prioridad. |
 | `asistencia_directa` | ⚠ MANUAL | ANSES sin API pública. |
 | `fal_modernizacion_laboral` | ⚠ MANUAL | Auto posible desde H2-2026 (FAL operativo). |

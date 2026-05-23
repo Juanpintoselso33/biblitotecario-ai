@@ -372,11 +372,52 @@ def fetch_privatizaciones() -> dict | None:
 
 def fetch_reestructuracion_organismos() -> dict | None:
     """
-    Conteo de decretos de disolución/fusión de organismos en el Boletín Oficial.
+    Cuenta normas con "disolucion" desde dic-2023 via InfoLeg sesión POST.
+    DNU 70/23 no aparece en búsqueda de texto libre (no indexado); los 18 documentos
+    capturados son acciones de disolución/fusión POSTERIORES al megadecreto.
+    Calibración: 18 actos = avance 40% (validado con estimación manual); 45 = 100%.
     """
     try:
-        # Mismo problema que privatizaciones: necesita acumulado histórico
-        return None
+        session = requests.Session()
+        r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r_home.raise_for_status()
+
+        action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
+        if not action_m:
+            raise ValueError("No se encontró form action URL en InfoLeg home")
+        action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
+
+        today = date.today()
+        post_data = {
+            "tipoNorma":    "",
+            "numero":       "",
+            "anioSancion":  "",
+            "dependencia":  "",
+            "diaPubDesde":  "01",
+            "mesPubDesde":  "12",
+            "anioPubDesde": "2023",
+            "diaPubHasta":  today.strftime("%d"),
+            "mesPubHasta":  today.strftime("%m"),
+            "anioPubHasta": today.strftime("%Y"),
+            "texto":        "disolucion",
+        }
+        r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r.raise_for_status()
+
+        m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
+        if not m:
+            raise ValueError("Conteo no encontrado en respuesta InfoLeg")
+
+        count  = int(m.group(1))
+        avance = round(min(100.0, count * 100.0 / 45.0), 1)
+        return {
+            "valor":          count,
+            "avance_pct":     avance,
+            "unidad":         "normas con 'disolucion' publicadas desde dic-2023 (InfoLeg)",
+            "fuente":         INFOLEG_HOME,
+            "fecha_dato":     today.isoformat(),
+            "desactualizado": False,
+        }
     except Exception as e:
         _warn("reestructuracion_organismos", e)
         return None

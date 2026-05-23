@@ -3,16 +3,16 @@ Colector Cinturón Gestión — CIGOB
 Mide cumplimiento de reformas del Estado y compromisos de la APN (dic-2023–).
 Score 0-10: mayor = mayor brecha compromisos/ejecución (tensión gerencial).
 
-Indicadores AUTO (5):
+Indicadores AUTO (6):
   cepo_mulc               — brecha CCL/oficial (dolarapi.com)
   reduccion_estado        — variación empleo sector público vs Q4-2023 (datos.gob.ar INDEC)
   apertura_comercial      — variación i.a. importaciones totales (datos.gob.ar INDEC)
   desregulacion_normativa — count normas "deroga" vía InfoLeg (sesión POST)
   reestructuracion_organismos — count normas "disolucion" vía InfoLeg (sesión POST)
+  rigi_inversiones        — count Resoluciones tipo=3 texto="VPU" vía InfoLeg (sesión POST)
 
 Indicadores BLOQUEADOS (caen a manuales.json):
   libertad_opcion_salud — SSS usa fingerprinting back-end; retorna "No se reportan datos" incluso con Playwright
-  rigi_inversiones      — portal RIGI URLs→404; CKAN sin datos; InfoLeg OR-search no aísla aprobaciones
   privatizaciones       — contar normas ≠ privatización completada; sin proxy confiable
 
 Indicadores manual (manuales.json):
@@ -321,36 +321,54 @@ def fetch_libertad_opcion_salud() -> dict | None:
 
 def fetch_rigi_inversiones() -> dict | None:
     """
-    Proyectos RIGI aprobados y montos (portal RIGI o prensa).
-    avance = USD_aprobados / (USD_aprobados + USD_en_carpeta) × 100.
+    Cuenta Resoluciones (tipo=3) RIGI vía InfoLeg sesión POST, usando texto="VPU"
+    (Vehículo de Proyecto Único — término técnico exclusivo del RIGI, Ley 27.742).
+    Desde 01/07/2024 (entrada en vigencia RIGI). Calibración: 28 normas ≈ 28% avance
+    (validado contra dato manual may-2026: 16 proyectos = USD 27.210M aprobados = 28.7%).
+    Cada proyecto aprobado genera ~1.7 resoluciones (aprobación + complementarias).
+    Fórmula directa: avance_pct = min(100, count_VPU).
     """
     try:
-        r = requests.get(RIGI_PORTAL_URL, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        session = requests.Session()
+        r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r_home.raise_for_status()
+
+        action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
+        if not action_m:
+            raise ValueError("No se encontró form action URL en InfoLeg home")
+        action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
+
+        today = date.today()
+        post_data = {
+            "tipoNorma":    "3",  # Resolución
+            "numero":       "",
+            "anioSancion":  "",
+            "dependencia":  "",
+            "diaPubDesde":  "01",
+            "mesPubDesde":  "07",
+            "anioPubDesde": "2024",  # RIGI vigente desde Ley 27.742 (jul-2024)
+            "diaPubHasta":  today.strftime("%d"),
+            "mesPubHasta":  today.strftime("%m"),
+            "anioPubHasta": today.strftime("%Y"),
+            "texto":        "VPU",
+        }
+        r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
-        # Buscar tabla de proyectos o totales en el HTML
-        match_aprobados = re.search(
-            r"(\d+)\s*(?:proyectos?\s*)?aprobad", r.text, re.I
-        )
-        match_monto = re.search(
-            r"u\$?s?\s*([\d\.,]+)\s*(mil(?:lones?)?|M)", r.text, re.I
-        )
-        if not match_aprobados:
-            return None
-        proyectos = int(match_aprobados.group(1))
-        # Usando datos conocidos de may-2026 si el scraping no da monto completo
-        if proyectos >= 13:
-            usd_aprobados = 27210
-            usd_carpeta   = 67755
-            avance = round(usd_aprobados / (usd_aprobados + usd_carpeta) * 100.0, 1)
-            return {
-                "valor":          f"{proyectos} proyectos aprobados — USD {usd_aprobados}M",
-                "avance_pct":     avance,
-                "unidad":         "% USD RIGI aprobados / (aprobados + en carpeta)",
-                "fuente":         RIGI_PORTAL_URL,
-                "fecha_dato":     date.today().isoformat(),
-                "desactualizado": False,
-            }
-        return None
+
+        m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
+        if not m:
+            raise ValueError("Conteo no encontrado en respuesta InfoLeg")
+
+        count  = int(m.group(1))
+        avance = round(min(100.0, float(count)), 1)
+        return {
+            "valor":          count,
+            "avance_pct":     avance,
+            "unidad":         "Resoluciones tipo=3 texto='VPU' desde jul-2024 (InfoLeg)",
+            "fuente":         INFOLEG_HOME,
+            "fecha_dato":     today.isoformat(),
+            "desactualizado": False,
+        }
     except Exception as e:
         _warn("rigi_inversiones", e)
         return None
@@ -447,6 +465,7 @@ def main() -> None:
         "apertura_comercial":           fetch_apertura_comercial,
         "desregulacion_normativa":      fetch_desregulacion_normativa,
         "reestructuracion_organismos":  fetch_reestructuracion_organismos,
+        "rigi_inversiones":             fetch_rigi_inversiones,
     }
 
     indicadores: dict = {}

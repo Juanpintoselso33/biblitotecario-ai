@@ -7,11 +7,10 @@
       "fal_modernizacion_laboral",
       "protocolo_antipiquetes"
     ],
-    "indicadores_auto": ["cepo_mulc", "reduccion_estado", "apertura_comercial", "desregulacion_normativa", "reestructuracion_organismos"],
+    "indicadores_auto": ["cepo_mulc", "reduccion_estado", "apertura_comercial", "desregulacion_normativa", "reestructuracion_organismos", "rigi_inversiones"],
     "indicadores_bloqueados": {
-      "libertad_opcion_salud": "SSS fingerprinting back-end; retorna 'No se reportan datos' incluso con Playwright",
-      "rigi_inversiones": "portal RIGI URLs→404; CKAN sin datos; InfoLeg OR-search no aísla aprobaciones de proyectos",
-      "privatizaciones": "contar normas ≠ privatización completada; sin proxy confiable (tipo=3 'privatizacion'=9 pero no mapea a %)"
+      "libertad_opcion_salud": "SSS fingerprinting back-end; retorna 'No se reportan datos' incluso con Playwright. Padrón datos.gob.ar congelado en 2019",
+      "privatizaciones": "contar normas ≠ privatización completada; BO sin API JSON; ComprAR es ASP.NET con __VIEWSTATE. Sin proxy confiable"
     },
     "pendiente_automatizacion": {
       "concesiones_infraestructura": "Vialidad Nacional / ORSNA — sin API estructurada. Km concesionados activos publicados en informes PDF trimestrales.",

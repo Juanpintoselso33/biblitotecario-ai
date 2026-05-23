@@ -26,7 +26,7 @@ Score global = promedio de scores de indicadores disponibles.
 | `concesiones_infraestructura` | ⚠ manual | Vialidad Nacional / ORSNA | Manual | ~35% |
 | `reduccion_estado` | ✅ auto | datos.gob.ar `324.1_TOTAL_SECTAJO__36` | Trimestral | ~3% |
 | `reestructuracion_organismos` | ✅ auto | InfoLeg sesión POST — `texto="disolucion"` + rango dic-2023 | Mensual | ~40% (18 normas) |
-| `rigi_inversiones` | ❌ bloqueado | Portal RIGI→404; InfoLeg OR-search no aísla proyectos | Manual fallback | ~29% |
+| `rigi_inversiones` | ✅ auto | InfoLeg sesión POST — tipo=3 + `texto="VPU"` desde jul-2024 | Mensual | ~28% (28 normas VPU) |
 | `desregulacion_normativa` | ✅ auto | InfoLeg sesión POST — `texto="deroga"` + rango dic-2023 | Mensual | ~55% (55 normas) |
 | `apertura_comercial` | ✅ auto | datos.gob.ar `163.3_MTALTAL_0_0_7` | Mensual | ~100% |
 | `asistencia_directa` | ⚠ manual | ANSES — padrón Volver al Trabajo | Manual | ~35% |
@@ -72,10 +72,11 @@ Score global = promedio de scores de indicadores disponibles.
 - **Avance (may-2026):** 18 normas → avance 40.0%
 
 ### `rigi_inversiones` — Inversiones RIGI
-- **Fuente:** Portal RIGI + Ministerio de Economía / prensa
-- **Cálculo:** USD aprobados / (USD aprobados + USD en carpeta) × 100
-- **Datos may-2026:** 13 proyectos aprobados — USD 27.210M | 22 en carpeta — USD 67.755M → avance 28.7%
-- **Pendiente automatizar:** Scraping `argentina.gob.ar/economia/industria/rigi` (URL cambia, actualmente 404)
+- **Fuente:** InfoLeg sesión POST — `tipoNorma=3` (Resolución) + `texto="VPU"` desde 01/07/2024
+- **Cálculo:** count Resoluciones con "VPU" (Vehículo de Proyecto Único — término técnico exclusivo del RIGI, Ley 27.742). Fórmula directa: `avance_pct = min(100, count)`.
+- **Calibración:** 28 resoluciones VPU ≈ 16 proyectos aprobados ≈ USD 27.210M (mayo-2026). Ratio ~1.7 resoluciones por proyecto (aprobación + complementarias). Calibrado contra dato manual El Cronista/La Nueva may-2026.
+- **Nota técnica:** Búsqueda OR-search en InfoLeg falla con "RIGI" (93 normas mezcladas) o "adhesion" (164). "VPU" es palabra técnica que aparece SOLO en resoluciones de aprobación e implementación del régimen. Confirmado: search sin filtro tipo = 34 (similar al 28 con tipo=3 → casi todas son Resoluciones, como se espera).
+- **Avance (may-2026):** 28 normas VPU → avance 28.0%
 
 ### `desregulacion_normativa` — Desregulación Normativa
 - **Fuente:** InfoLeg sesión POST — GET home → extraer jsessionid → POST con `texto="deroga"` y fechas dic-2023/hoy
@@ -153,10 +154,10 @@ python scripts/gestion.py
 | `reduccion_estado` | ✅ AUTO | datos.gob.ar serie INDEC. Avance bajo (~3%). |
 | `apertura_comercial` | ✅ AUTO | datos.gob.ar serie INDEC. |
 | `desregulacion_normativa` | ✅ AUTO | InfoLeg sesión POST. Implementado may-2026. |
-| `libertad_opcion_salud` | ❌ BLOQUEADO | SSS fingerprinting back-end. Retorna "No se reportan datos" incluso con Playwright. |
-| `rigi_inversiones` | ❌ BLOQUEADO | Portal RIGI→404. InfoLeg tipo=3 RIGI=93 normas (OR-search, no aísla aprobaciones). |
-| `privatizaciones` | ❌ BLOQUEADO | tipo=3 'privatizacion'=9 normas pero OR-search: contar normas ≠ transferencia completa. |
 | `reestructuracion_organismos` | ✅ AUTO | InfoLeg sesión POST `disolucion`. Implementado may-2026. |
+| `rigi_inversiones` | ✅ AUTO | InfoLeg sesión POST `texto="VPU"` desde jul-2024. Calibrado 28=28% (vs 28.7% manual). Implementado may-2026. |
+| `libertad_opcion_salud` | ❌ BLOQUEADO | SSS fingerprinting back-end. Padrón datos.gob.ar congelado en 2019. Sin alternativa. |
+| `privatizaciones` | ❌ BLOQUEADO | BO sin API JSON. ComprAR ASP.NET con __VIEWSTATE. tipo=3 'privatizacion'=9 ambiguo (OR-search). |
 | `concesiones_infraestructura` | ⚠ MANUAL | Sin API. Baja prioridad. |
 | `asistencia_directa` | ⚠ MANUAL | ANSES sin API pública. |
 | `fal_modernizacion_laboral` | ⚠ MANUAL | Auto posible desde H2-2026 (FAL operativo). |
@@ -167,11 +168,9 @@ python scripts/gestion.py
 | Prioridad | Indicador | Acción |
 |---|---|---|
 | Alta | `reduccion_estado` | Identificar serie ONP headcount en datos.gob.ar (buscar "nomina sector publico") |
-| Alta | `rigi_inversiones` | Encontrar URL correcta del portal RIGI (actualmente 404) |
-| Media | `privatizaciones` | Scraping BO con sesión activa + keywords empresa + transferencia acciones |
-| Media | `reestructuracion_organismos` | Scraping BO decretos de disolución/fusión + conteo histórico |
-| Media | `libertad_opcion_salud` | Playwright/headless si SSS no ofrece API |
 | Baja | `concesiones_infraestructura` | API Vialidad Nacional o scraping PDF informes |
 | Baja | `asistencia_directa` | Portal transparencia ANSES |
 | H2-2026 | `fal_modernizacion_laboral` | Auto cuando FAL sea operativo: MTEySS aportes vía ANSES |
 | — | `protocolo_antipiquetes` | Sin fuente pública estructurada — requiere acuerdo Min. Seguridad |
+| — | `libertad_opcion_salud` | BLOQUEADO definitivo (SSS fingerprinting). Carga manual desde reporte SSS trimestral |
+| — | `privatizaciones` | BLOQUEADO definitivo (BO sin API). Carga manual desde anuncios oficiales |

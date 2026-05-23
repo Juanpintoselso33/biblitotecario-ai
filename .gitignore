@@ -1,32 +1,98 @@
-# OneDrive temp files
+# ============================================================
+# Sistema operativo y editores
+# ============================================================
 *.tmp
 ~$*
 desktop.ini
 Thumbs.db
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
-# Python
+# ============================================================
+# Lenguajes y package managers
+# ============================================================
 __pycache__/
 *.pyc
-
-# OS
-.DS_Store
-
-# Node
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
 node_modules/
 package-lock.json
 
-# Backup de archivos deprecados
-backup/
-
-# Credentials
+# ============================================================
+# Credenciales y secretos
+# ============================================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
 client_secret*.json
+credentials.json
+service-account*.json
 
+# ============================================================
+# Backup y temporales
+# ============================================================
+backup/
+*.bak
+*.backup
+
+# ============================================================
 # Output generado en runtime
+# ============================================================
 output/*.png
 output/main_script.js
 output/review_screenshots/
 
-# CIGOB Análisis — outputs generados por colectores e informes
-projects/*/output/*.json
-projects/*/output/*.md
-projects/*/output/cache/*.json
+# Outputs de colectores e informes CIGOB
+projects/*/output/
+projects/*/output/cache/
+projects/informe_coyuntura/scripts/vida_cotidiana/data/
+
+# ============================================================
+# Herramientas de desarrollo asistido por IA (no se versionan)
+# ============================================================
+# Claude Code (agentes, comandos, skills, settings locales)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+
+# Otros asistentes
+.cursor/
+.cursorrules
+.aider*
+.continue/
+.codeium/
+.windsurf*
+.windsurfrules
+.tabnine/
+.copilot/
+.cline/
+AGENTS.md
+GEMINI.md
+.gemini/
+
+# BMAD Method y frameworks similares
+.bmad-core/
+.bmad-output/
+.bmad-*/
+
+# MCP servers y caches
+.mcp-cache/
+.playwright-mcp/
+*-mcp/
+mcp-debug.log
+
+# Notas de scratch del desarrollo asistido
+NOTES.md
+SCRATCH.md
+TODO_AI.md

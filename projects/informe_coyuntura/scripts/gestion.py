@@ -3,17 +3,17 @@ Colector Cinturón Gestión — CIGOB
 Mide cumplimiento de reformas del Estado y compromisos de la APN (dic-2023–).
 Score 0-10: mayor = mayor brecha compromisos/ejecución (tensión gerencial).
 
-Indicadores auto:
-  cepo_mulc            — brecha CCL/oficial (dolarapi.com) — proxy restricción cambiaria empresas
-  reduccion_estado     — variación empleo sector público vs Q4-2023 (datos.gob.ar INDEC)
-  apertura_comercial   — variación i.a. importaciones totales (datos.gob.ar INDEC)
+Indicadores AUTO (5):
+  cepo_mulc               — brecha CCL/oficial (dolarapi.com)
+  reduccion_estado        — variación empleo sector público vs Q4-2023 (datos.gob.ar INDEC)
+  apertura_comercial      — variación i.a. importaciones totales (datos.gob.ar INDEC)
   desregulacion_normativa — count normas "deroga" vía InfoLeg (sesión POST)
+  reestructuracion_organismos — count normas "disolucion" vía InfoLeg (sesión POST)
 
-Indicadores scrape (best-effort → fallback manuales.json):
-  libertad_opcion_salud    — opciones de cambio captadas (SSS)
-  rigi_inversiones         — montos RIGI aprobados (portal RIGI)
-  privatizaciones          — pliegos/transferencias (Boletín Oficial)
-  reestructuracion_organismos — organismos disueltos/fusionados (BO)
+Indicadores BLOQUEADOS (caen a manuales.json):
+  libertad_opcion_salud — SSS usa fingerprinting back-end; retorna "No se reportan datos" incluso con Playwright
+  rigi_inversiones      — portal RIGI URLs→404; CKAN sin datos; InfoLeg OR-search no aísla aprobaciones
+  privatizaciones       — contar normas ≠ privatización completada; sin proxy confiable
 
 Indicadores manual (manuales.json):
   concesiones_infraestructura, asistencia_directa,
@@ -442,14 +442,11 @@ def main() -> None:
     manuales       = load_manuales()
 
     auto_fetchers: dict = {
-        "cepo_mulc":               fetch_cepo_mulc,
-        "reduccion_estado":        fetch_reduccion_estado,
-        "apertura_comercial":      fetch_apertura_comercial,
-        "desregulacion_normativa": fetch_desregulacion_normativa,
-        "libertad_opcion_salud":   fetch_libertad_opcion_salud,
-        "rigi_inversiones":        fetch_rigi_inversiones,
-        "privatizaciones":         fetch_privatizaciones,
-        "reestructuracion_organismos": fetch_reestructuracion_organismos,
+        "cepo_mulc":                    fetch_cepo_mulc,
+        "reduccion_estado":             fetch_reduccion_estado,
+        "apertura_comercial":           fetch_apertura_comercial,
+        "desregulacion_normativa":      fetch_desregulacion_normativa,
+        "reestructuracion_organismos":  fetch_reestructuracion_organismos,
     }
 
     indicadores: dict = {}

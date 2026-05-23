@@ -22,16 +22,16 @@ Score global = promedio de scores de indicadores disponibles.
 | Nombre | Estado | Fuente | Tipo | Avance actual |
 |---|---|---|---|---|
 | `cepo_mulc` | ✅ auto | dolarapi.com — brecha **CCL**/oficial | Daily | ~78% (brecha 4.3%) |
-| `privatizaciones` | ⚠ manual | Boletín Oficial — transferencia de acciones | Manual | ~15% |
+| `privatizaciones` | ❌ bloqueado | Contar normas ≠ privatización completa; sin proxy confiable | Manual fallback | ~15% |
 | `concesiones_infraestructura` | ⚠ manual | Vialidad Nacional / ORSNA | Manual | ~35% |
 | `reduccion_estado` | ✅ auto | datos.gob.ar `324.1_TOTAL_SECTAJO__36` | Trimestral | ~3% |
 | `reestructuracion_organismos` | ✅ auto | InfoLeg sesión POST — `texto="disolucion"` + rango dic-2023 | Mensual | ~40% (18 normas) |
-| `rigi_inversiones` | ⚠ manual | Portal RIGI / prensa oficial (URL→404) | Manual | ~29% |
+| `rigi_inversiones` | ❌ bloqueado | Portal RIGI→404; InfoLeg OR-search no aísla proyectos | Manual fallback | ~29% |
 | `desregulacion_normativa` | ✅ auto | InfoLeg sesión POST — `texto="deroga"` + rango dic-2023 | Mensual | ~55% (55 normas) |
 | `apertura_comercial` | ✅ auto | datos.gob.ar `163.3_MTALTAL_0_0_7` | Mensual | ~100% |
 | `asistencia_directa` | ⚠ manual | ANSES — padrón Volver al Trabajo | Manual | ~35% |
 | `fal_modernizacion_laboral` | ⚠ manual | MTEySS — operación FAL | Manual | ~10% |
-| `libertad_opcion_salud` | ❌ scrape falla | SSS — JS-rendered, returns "No se reportan datos" | Manual fallback | ~40% |
+| `libertad_opcion_salud` | ❌ bloqueado | SSS fingerprinting back-end — "No se reportan datos" incluso Playwright | Manual fallback | ~40% |
 | `protocolo_antipiquetes` | ⚠ manual | Min. Seguridad — elaboración CIGOB | Manual | ~55% |
 
 ---
@@ -153,9 +153,9 @@ python scripts/gestion.py
 | `reduccion_estado` | ✅ AUTO | datos.gob.ar serie INDEC. Avance bajo (~3%). |
 | `apertura_comercial` | ✅ AUTO | datos.gob.ar serie INDEC. |
 | `desregulacion_normativa` | ✅ AUTO | InfoLeg sesión POST. Implementado may-2026. |
-| `libertad_opcion_salud` | ❌ BLOQUEADO | SSS JS-rendered. Sin alternativa API. |
-| `rigi_inversiones` | ❌ BLOQUEADO | Portal RIGI → 404 todas las URLs. |
-| `privatizaciones` | ❌ PENDIENTE | Contar normas ≠ privatización completa. Sin proxy confiable. |
+| `libertad_opcion_salud` | ❌ BLOQUEADO | SSS fingerprinting back-end. Retorna "No se reportan datos" incluso con Playwright. |
+| `rigi_inversiones` | ❌ BLOQUEADO | Portal RIGI→404. InfoLeg tipo=3 RIGI=93 normas (OR-search, no aísla aprobaciones). |
+| `privatizaciones` | ❌ BLOQUEADO | tipo=3 'privatizacion'=9 normas pero OR-search: contar normas ≠ transferencia completa. |
 | `reestructuracion_organismos` | ✅ AUTO | InfoLeg sesión POST `disolucion`. Implementado may-2026. |
 | `concesiones_infraestructura` | ⚠ MANUAL | Sin API. Baja prioridad. |
 | `asistencia_directa` | ⚠ MANUAL | ANSES sin API pública. |

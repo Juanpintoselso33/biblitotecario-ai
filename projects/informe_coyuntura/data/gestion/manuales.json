@@ -7,12 +7,11 @@
       "fal_modernizacion_laboral",
       "protocolo_antipiquetes"
     ],
-    "indicadores_auto": ["cepo_mulc", "reduccion_estado", "apertura_comercial"],
+    "indicadores_auto": ["cepo_mulc", "reduccion_estado", "apertura_comercial", "desregulacion_normativa"],
     "indicadores_scrape_fallback": [
       "privatizaciones",
       "reestructuracion_organismos",
       "rigi_inversiones",
-      "desregulacion_normativa",
       "libertad_opcion_salud"
     ],
     "pendiente_automatizacion": {
@@ -25,9 +24,9 @@
     "valor": null,
     "avance_pct": null,
     "estado": "auto",
-    "unidad": "% brecha blue/oficial",
+    "unidad": "% brecha CCL/oficial (cepo corporativo)",
     "fuente": "dolarapi.com/v1/dolares",
-    "notas": "Cargado automáticamente. Este campo es fallback si falla el colector.",
+    "notas": "Proxy CCL (contado con liquidación) vs oficial. El cepo minorista se levantó abr-2025; el CCL refleja la restricción que persiste para empresas (remesas, dividendos). Brecha 0%=avance 100%; 20%=avance 0%.",
     "fecha_dato": null
   },
   "privatizaciones": {

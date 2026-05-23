@@ -21,29 +21,29 @@ Score global = promedio de scores de indicadores disponibles.
 
 | Nombre | Estado | Fuente | Tipo | Avance actual |
 |---|---|---|---|---|
-| `cepo_mulc` | ✅ auto | dolarapi.com — brecha blue/oficial | Daily | ~100% |
+| `cepo_mulc` | ✅ auto | dolarapi.com — brecha **CCL**/oficial | Daily | ~78% (brecha 4.3%) |
 | `privatizaciones` | ⚠ manual | Boletín Oficial — transferencia de acciones | Manual | ~15% |
 | `concesiones_infraestructura` | ⚠ manual | Vialidad Nacional / ORSNA | Manual | ~35% |
 | `reduccion_estado` | ✅ auto | datos.gob.ar `324.1_TOTAL_SECTAJO__36` | Trimestral | ~3% |
 | `reestructuracion_organismos` | ⚠ manual | Boletín Oficial — decretos disolución/fusión | Manual | ~40% |
-| `rigi_inversiones` | ⚠ manual | Portal RIGI / prensa oficial | Manual | ~29% |
-| `desregulacion_normativa` | ⚡ scrape | InfoLeg `buscarNormas.do` | Mensual | ~45% |
+| `rigi_inversiones` | ⚠ manual | Portal RIGI / prensa oficial (URL→404) | Manual | ~29% |
+| `desregulacion_normativa` | ✅ auto | InfoLeg sesión POST — `texto="deroga"` + rango dic-2023 | Mensual | ~55% (55 normas) |
 | `apertura_comercial` | ✅ auto | datos.gob.ar `163.3_MTALTAL_0_0_7` | Mensual | ~100% |
 | `asistencia_directa` | ⚠ manual | ANSES — padrón Volver al Trabajo | Manual | ~35% |
 | `fal_modernizacion_laboral` | ⚠ manual | MTEySS — operación FAL | Manual | ~10% |
-| `libertad_opcion_salud` | ⚡ scrape | SSS — opciones captadas | Mensual | ~40% |
+| `libertad_opcion_salud` | ❌ scrape falla | SSS — JS-rendered, returns "No se reportan datos" | Manual fallback | ~40% |
 | `protocolo_antipiquetes` | ⚠ manual | Min. Seguridad — elaboración CIGOB | Manual | ~55% |
 
 ---
 
 ## Detalle por indicador
 
-### `cepo_mulc` — Desmantelamiento del Cepo
+### `cepo_mulc` — Cepo Corporativo
 - **Fuente:** `GET https://dolarapi.com/v1/dolares`
-- **Cálculo:** brecha = (blue_venta − oficial_venta) / oficial_venta × 100%
-- **Avance:** `max(0, 100 − brecha × 2)` → brecha 0% = avance 100%; brecha 50% = avance 0%
-- **Interpretación:** Brecha cambiaria como proxy del grado de liberalización. Unificación cambiaria realizada en abr-2025 (acuerdo FMI). Brecha ≈ 0% confirma cepo desmantelado a nivel mayorista.
-- **Última ejecución:** brecha = 0.0% → avance 100%
+- **Cálculo:** brecha = (CCL_venta − oficial_venta) / oficial_venta × 100%
+- **Avance:** `max(0, 100 − brecha × 5)` → brecha 0% = avance 100%; brecha 20% = avance 0%
+- **Interpretación:** El cepo minorista se levantó en abr-2025. Para **empresas** persiste la restricción: giro de dividendos, remesa de utilidades, acceso al MULC para capital. El CCL (contado con liquidación) refleja esta brecha. Blue ≈ 0% es engañoso — debe usarse CCL.
+- **Última ejecución (may-2026):** CCL=1486.6, oficial=1425 → brecha=4.3% → avance=78.4%
 
 ### `privatizaciones` — Privatizaciones
 - **Fuente:** Boletín Oficial — transferencia efectiva de acciones
@@ -77,10 +77,11 @@ Score global = promedio de scores de indicadores disponibles.
 - **Pendiente automatizar:** Scraping `argentina.gob.ar/economia/industria/rigi` (URL cambia, actualmente 404)
 
 ### `desregulacion_normativa` — Desregulación Normativa
-- **Fuente:** `https://servicios.infoleg.gob.ar/infolegInternet/buscarNormas.do?estado=DEROGADA&fechaDesde=01/12/2023`
-- **Cálculo:** total normas derogadas acum. desde dic-2023. 2000 = avance 100%.
-- **Avance:** ~45% (estimado — scraper activo pero regex no siempre matchea el total del HTML)
-- **Nota:** DL 70/23 derogó miles de artículos. Para mejor automatización: usar dataset InfoLeg CSV de datos.jus.gob.ar
+- **Fuente:** InfoLeg sesión POST — GET home → extraer jsessionid → POST con `texto="deroga"` y fechas dic-2023/hoy
+- **Cálculo:** count de normas con "deroga" en el texto publicadas desde dic-2023. 100 = avance 100% (escala lineal).
+- **Avance (may-2026):** 55 normas derogantes → avance 55%
+- **Nota técnica:** El buscador InfoLeg requiere sesión activa (jsessionid). GET simple falla. Mismo patrón que `politica.py → fetch_ratio_dnu`. Cada documento cuenta como 1 independientemente de cuántos artículos derogue (DL 70/23 = 1 acción con cientos de derogaciones).
+- **Calibración:** 100 normas derogantes = avance 100%. Ajustable si se quiere mayor granularidad.
 
 ### `apertura_comercial` — Apertura Comercial
 - **Fuente:** `GET https://apis.datos.gob.ar/series/api/series/?ids=163.3_MTALTAL_0_0_7&sort=desc&limit=14`
@@ -143,17 +144,33 @@ python scripts/gestion.py
 
 ---
 
-## Roadmap de automatización pendiente
+## Estado de automatización (may-2026)
+
+| Indicador | Estado | Notas |
+|---|---|---|
+| `cepo_mulc` | ✅ AUTO | CCL/oficial brecha. Fix may-2026: blue→CCL. |
+| `reduccion_estado` | ✅ AUTO | datos.gob.ar serie INDEC. Avance bajo (~3%). |
+| `apertura_comercial` | ✅ AUTO | datos.gob.ar serie INDEC. |
+| `desregulacion_normativa` | ✅ AUTO | InfoLeg sesión POST. Implementado may-2026. |
+| `libertad_opcion_salud` | ❌ BLOQUEADO | SSS JS-rendered. Sin alternativa API. |
+| `rigi_inversiones` | ❌ BLOQUEADO | Portal RIGI → 404 todas las URLs. |
+| `privatizaciones` | ❌ PENDIENTE | BO requiere sesión. Prioridad media. |
+| `reestructuracion_organismos` | ❌ PENDIENTE | BO ídem. Prioridad media. |
+| `concesiones_infraestructura` | ⚠ MANUAL | Sin API. Baja prioridad. |
+| `asistencia_directa` | ⚠ MANUAL | ANSES sin API pública. |
+| `fal_modernizacion_laboral` | ⚠ MANUAL | Auto posible desde H2-2026 (FAL operativo). |
+| `protocolo_antipiquetes` | ⚠ MANUAL | Sin fuente pública estructurada. |
+
+## Próximos pasos de automatización
 
 | Prioridad | Indicador | Acción |
 |---|---|---|
 | Alta | `reduccion_estado` | Identificar serie ONP headcount en datos.gob.ar (buscar "nomina sector publico") |
-| Alta | `desregulacion_normativa` | Usar dataset CSV InfoLeg de datos.jus.gob.ar (actualización diaria) |
 | Alta | `rigi_inversiones` | Encontrar URL correcta del portal RIGI (actualmente 404) |
-| Media | `privatizaciones` | Scraping BO acumulado con keywords empresa + transferencia acciones |
+| Media | `privatizaciones` | Scraping BO con sesión activa + keywords empresa + transferencia acciones |
 | Media | `reestructuracion_organismos` | Scraping BO decretos de disolución/fusión + conteo histórico |
-| Media | `libertad_opcion_salud` | Parsear tabla SSS con serie temporal post-dic-2023 |
+| Media | `libertad_opcion_salud` | Playwright/headless si SSS no ofrece API |
 | Baja | `concesiones_infraestructura` | API Vialidad Nacional o scraping PDF informes |
 | Baja | `asistencia_directa` | Portal transparencia ANSES |
-| — | `fal_modernizacion_laboral` | Auto cuando FAL sea operativo (H2-2026): MTEySS aportes |
+| H2-2026 | `fal_modernizacion_laboral` | Auto cuando FAL sea operativo: MTEySS aportes vía ANSES |
 | — | `protocolo_antipiquetes` | Sin fuente pública estructurada — requiere acuerdo Min. Seguridad |

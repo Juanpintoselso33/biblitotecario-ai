@@ -4,12 +4,12 @@ Mide cumplimiento de reformas del Estado y compromisos de la APN (dic-2023–).
 Score 0-10: mayor = mayor brecha compromisos/ejecución (tensión gerencial).
 
 Indicadores auto:
-  cepo_mulc            — brecha cambiaria blue/oficial (dolarapi.com)
+  cepo_mulc            — brecha CCL/oficial (dolarapi.com) — proxy restricción cambiaria empresas
   reduccion_estado     — variación empleo sector público vs Q4-2023 (datos.gob.ar INDEC)
   apertura_comercial   — variación i.a. importaciones totales (datos.gob.ar INDEC)
+  desregulacion_normativa — count normas "deroga" vía InfoLeg (sesión POST)
 
 Indicadores scrape (best-effort → fallback manuales.json):
-  desregulacion_normativa  — normas derogadas desde dic-2023 (InfoLeg)
   libertad_opcion_salud    — opciones de cambio captadas (SSS)
   rigi_inversiones         — montos RIGI aprobados (portal RIGI)
   privatizaciones          — pliegos/transferencias (Boletín Oficial)
@@ -38,7 +38,7 @@ MANUALES_PATH = PROJECT_DIR / "data" / "gestion" / "manuales.json"
 # ── URLs ──────────────────────────────────────────────────────────────────────
 DOLARAPI_URL        = "https://dolarapi.com/v1/dolares"
 INDEC_SERIES_BASE   = "https://apis.datos.gob.ar/series/api/series/"
-INFOLEG_BUSCAR_URL  = "https://servicios.infoleg.gob.ar/infolegInternet/buscarNormas.do"
+INFOLEG_HOME        = "https://servicios.infoleg.gob.ar/infolegInternet/"
 SSS_OPCIONES_URL    = "https://www.sssalud.gob.ar/index.php"
 RIGI_PORTAL_URL     = "https://www.argentina.gob.ar/economia/industria/rigi"
 BO_API_URL          = "https://www.boletinoficial.gob.ar/norma/detallePrimera"
@@ -130,23 +130,26 @@ def _indec_serie(series_id: str, limit: int = 16) -> list:
 
 def fetch_cepo_mulc() -> dict | None:
     """
-    Brecha blue/oficial como proxy del desmantelamiento del cepo.
-    brecha 0% → avance 100% (cepo eliminado); brecha 50% → avance 0%.
+    Brecha CCL/oficial como proxy del cepo corporativo (giro de dividendos, capitales).
+    Blue≈0% porque el cepo minorista se levantó (abr-2025); el CCL mide la restricción
+    que persiste para empresas: repatriación de utilidades, acceso al MULC para capital.
+    brecha 0% → avance 100%; brecha 20% → avance 0%.
     """
     try:
         r = requests.get(DOLARAPI_URL, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
         dolares = {d["casa"]: d for d in r.json()}
-        blue    = dolares.get("blue",    {}).get("venta")
-        oficial = dolares.get("oficial", {}).get("venta")
-        if not blue or not oficial:
-            raise ValueError("blue o oficial no encontrado en respuesta")
-        brecha = round((float(blue) - float(oficial)) / float(oficial) * 100.0, 2)
-        avance = round(max(0.0, min(100.0, 100.0 - brecha * 2.0)), 1)
+        ccl     = dolares.get("contadoconliqui", {}).get("venta")
+        oficial = dolares.get("oficial",         {}).get("venta")
+        if not ccl or not oficial:
+            raise ValueError("CCL u oficial no encontrado en respuesta")
+        brecha = round((float(ccl) - float(oficial)) / float(oficial) * 100.0, 2)
+        # 0% → avance 100%; 20% → avance 0%
+        avance = round(max(0.0, min(100.0, 100.0 - brecha * 5.0)), 1)
         return {
             "valor":          brecha,
             "avance_pct":     avance,
-            "unidad":         "% brecha blue/oficial",
+            "unidad":         "% brecha CCL/oficial (cepo corporativo)",
             "fuente":         DOLARAPI_URL,
             "fecha_dato":     date.today().isoformat(),
             "desactualizado": False,
@@ -236,33 +239,49 @@ def fetch_apertura_comercial() -> dict | None:
 
 def fetch_desregulacion_normativa() -> dict | None:
     """
-    Cuenta normas DEROGADA desde dic-2023 en InfoLeg.
-    2000 normas → avance 100%; 0 → avance 0%.
+    Cuenta normas publicadas desde dic-2023 que contienen "deroga" (InfoLeg sesión POST).
+    Requiere GET al home para obtener jsessionid, luego POST con rango de fechas.
+    100 normas derogantes = avance 100%; escala lineal.
     """
     try:
-        params = {
-            "method":     "buscar",
-            "estado":     "DEROGADA",
-            "fechaDesde": "01/12/2023",
-            "fechaHasta": date.today().strftime("%d/%m/%Y"),
+        session = requests.Session()
+        r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r_home.raise_for_status()
+
+        action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
+        if not action_m:
+            raise ValueError("No se encontró form action URL en InfoLeg home")
+        action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
+
+        today = date.today()
+        post_data = {
+            "tipoNorma":   "",
+            "numero":      "",
+            "anioSancion": "",
+            "dependencia": "",
+            "diaPubDesde": "01",
+            "mesPubDesde": "12",
+            "anioPubDesde": "2023",
+            "diaPubHasta": today.strftime("%d"),
+            "mesPubHasta": today.strftime("%m"),
+            "anioPubHasta": today.strftime("%Y"),
+            "texto":       "deroga",
         }
-        r = requests.get(INFOLEG_BUSCAR_URL, params=params, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+        r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
         r.raise_for_status()
-        match = (
-            re.search(r"Se\s+encontr[aó][a-z\s]+?(\d[\d\.]*)\s+norm", r.text, re.I)
-            or re.search(r"Total[:\s]+(\d[\d\.]*)", r.text, re.I)
-            or re.search(r"(\d[\d\.]+)\s+result", r.text, re.I)
-        )
-        if not match:
-            return None
-        total  = int(match.group(1).replace(".", ""))
-        avance = round(min(100.0, total / 20.0), 1)  # 2000 = 100%
+
+        m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
+        if not m:
+            raise ValueError("Conteo no encontrado en respuesta InfoLeg")
+
+        count  = int(m.group(1))
+        avance = round(min(100.0, float(count)), 1)  # 100 normas derogantes = 100%
         return {
-            "valor":          total,
+            "valor":          count,
             "avance_pct":     avance,
-            "unidad":         "normas derogadas acum. desde dic-2023 (InfoLeg)",
-            "fuente":         INFOLEG_BUSCAR_URL,
-            "fecha_dato":     date.today().isoformat(),
+            "unidad":         "normas con 'deroga' publicadas desde dic-2023 (InfoLeg)",
+            "fuente":         INFOLEG_HOME,
+            "fecha_dato":     today.isoformat(),
             "desactualizado": False,
         }
     except Exception as e:
@@ -426,10 +445,11 @@ def main() -> None:
     save_cache(payload)
 
     total = len(INDICADORES_ESPERADOS)
+    total_auto = len(auto_fetchers)
     con_datos = sum(1 for v in indicadores.values() if v and v.get("avance_pct") is not None)
-    print(f"[OK] {CINTURON}: score={score} auto_frescos={frescos_auto} con_datos={con_datos}/{total}")
+    print(f"[OK] {CINTURON}: score={score} auto_frescos={frescos_auto}/{total_auto} con_datos={con_datos}/{total}")
 
-    if frescos_auto == total:
+    if frescos_auto == total_auto:
         sys.exit(0)
     elif frescos_auto > 0:
         sys.exit(1)

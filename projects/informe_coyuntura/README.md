@@ -1,55 +1,122 @@
 # Informe de Coyuntura
 
-Colectores de datos para los 4 cinturones matusianos (macro, político, vida cotidiana, gestión) + generador del informe periódico.
+Colectores de datos para los cuatro cinturones matusianos (Macro, Político, Vida Cotidiana, Gestión) y generador del informe periódico.
 
-## Cómo correr los colectores
+## Estado actual (mayo 2026)
+
+| Cinturón | Indicadores totales | Automáticos | Carga manual | Sin fuente |
+|---|---|---|---|---|
+| Vida Cotidiana | 14 + 1 manual | 14 | 1 | 0 |
+| Macro | 11 | 11 | 0 | 0 |
+| Político | 9 | 7 | 2 | 0 |
+| Gestión | 12 | 6 | 4 | 2 |
+
+Documento de referencia con detalle por indicador: [`docs/260523_proyecto_pais_estado_extraccion.md`](docs/260523_proyecto_pais_estado_extraccion.md).
+
+## Instalación
+
+```bash
+git clone https://github.com/Juanpintoselso33/biblitotecario-ai.git
+cd biblitotecario-ai/projects/informe_coyuntura
+pip install -r requirements.txt
+```
+
+Para el orquestador completo de vida cotidiana:
+
+```bash
+pip install -r scripts/vida_cotidiana/requirements.txt
+```
+
+## Ejecución de los colectores
 
 Desde la carpeta `projects/informe_coyuntura/`:
 
-```
-python scripts/macro.py
-python scripts/politica.py
-python scripts/vida_cotidiana/main.py
-python scripts/gestion.py
+```bash
+python scripts/macro.py                    # 11 indicadores macro
+python scripts/politica.py                 # 7 auto + 2 manual
+python scripts/gestion.py                  # 6 auto + 4 manual + 2 sin fuente
+python scripts/vida_cotidiana/main.py      # 8 fuentes, ~32 datapoints
 ```
 
 Cada colector corre de forma independiente. No es necesario correrlos todos.
 
-> **[Completar en Story 2.2–2.4]** Los scripts `macro.py`, `politica.py` y `gestion.py` se implementan en Epic 2.
+## Generación del informe
 
-## Cómo generar el informe
-
-```
+```bash
 python scripts/generar_informe.py
 ```
 
-> **[Completar en Story 3.1–3.2]** `generar_informe.py` se implementa en Epic 3.
-
-## Outputs esperados
+## Outputs
 
 | Archivo | Descripción |
 |---|---|
 | `output/cache/macro.json` | Último fetch válido del cinturón macro |
 | `output/cache/politica.json` | Último fetch válido del cinturón político |
-| `output/cache/vida_cotidiana.json` | Último fetch válido del cinturón vida cotidiana |
 | `output/cache/gestion.json` | Último fetch válido del cinturón gestión |
-| `output/informe.json` | Informe completo (schema v1.0.0) — para el dev externo |
-| `output/informe.md` | Informe markdown — para Drive y reunión |
+| `scripts/vida_cotidiana/data/vida_cotidiana_*.json` | Output del orquestador de vida cotidiana |
+| `output/informe.json` | Informe completo, schema v1.0.0 |
+| `output/informe.md` | Informe markdown para Drive y reunión |
 
-## Exit codes
+## Exit codes de los colectores
 
 | Código | Significado |
 |---|---|
-| `0` | Todos los indicadores son datos frescos |
-| `1` | Mezcla: algunos frescos, algunos del cache |
-| `2` | Todos los indicadores vienen del cache (fallo total de fuentes) |
+| 0 | Todos los indicadores son datos frescos |
+| 1 | Mezcla: algunos frescos, algunos del cache |
+| 2 | Todos los indicadores vienen del cache (fallo total de fuentes) |
 
-## Parámetros del modelo
-
-Los pesos, umbrales y el mapping de barbarismos se modifican en `config.py`. Documentar cualquier cambio metodológico en el commit con justificación.
-
-## Dependencias
+## Estructura del proyecto
 
 ```
-pip install -r requirements.txt
+projects/informe_coyuntura/
+├── README.md                              # este archivo
+├── requirements.txt                       # dependencias generales
+├── data/
+│   ├── gestion/manuales.json              # fallback Gestión
+│   └── politica/manuales.json             # fallback Político
+├── docs/
+│   ├── 260520 Proyecto País...docx        # documento base de los 4 cinturones
+│   ├── 260523_proyecto_pais_estado_extraccion.md  # estado actual — leer primero
+│   ├── cinturon_gestion.md
+│   ├── cinturon_macro.md
+│   ├── cinturon_politica.md
+│   ├── cinturon_vida_cotidiana.md
+│   └── archivo/                           # borradores pre-rediseño
+├── output/
+│   └── cache/                             # outputs JSON (gitignored)
+└── scripts/
+    ├── generar_informe.py
+    ├── gestion.py                         # 12 indicadores
+    ├── macro.py                           # 11 indicadores
+    ├── politica.py                        # 9 indicadores
+    ├── vida_cotidiana.py                  # puente legacy al orquestador global
+    └── vida_cotidiana/
+        ├── main.py                        # orquestador completo (14+ datapoints)
+        ├── collectors/                    # bcra, indec_series, utdt_icc, cafam, ciccra, snic, salud, trends
+        ├── config.py
+        └── requirements.txt
+```
+
+## Onboarding rápido
+
+1. Leer `docs/260523_proyecto_pais_estado_extraccion.md` para el panorama completo de indicadores, fuentes y estado.
+2. Leer el archivo `docs/cinturon_*.md` del cinturón en el que se vaya a trabajar.
+3. Correr los cuatro scripts para verificar que las fuentes respondan.
+4. Inspeccionar los outputs en `output/cache/*.json` (cada uno tiene indicadores, score y metadatos de extracción).
+
+## Patrones técnicos consolidados
+
+- **Sesión POST en InfoLeg** (usado en `politica.py:fetch_ratio_dnu` y tres colectores de `gestion.py`): GET a la home para obtener `jsessionid`, extraer URL de acción del formulario con regex, POST con parámetros. La búsqueda es OR sobre tokens (no exacta); para aislar normas específicas usar vocabulario técnico exclusivo (ejemplo: "VPU" para RIGI).
+- **CKAN HCDN** (3 indicadores en `politica.py`): `q=` realiza búsqueda full-text por tokens, no substring. Filtros con caracteres acentuados fallan por encoding; filtrar siempre del lado Python con `.lower()`.
+- **datos.gob.ar series**: `https://apis.datos.gob.ar/series/api/series/?ids=<id>&format=json&limit=N&sort=desc`.
+- **BCRA API v4.0**: requiere `verify=False` y `urllib3.disable_warnings()`. Los datos vienen en orden descendente; `detalle[0]` es el dato más reciente.
+
+## Dependencias clave
+
+```
+requests>=2.31.0
+xlrd==1.2.0          # Para leer .xls OLE2 (UTDT ICC). No usar xlrd>=2.0
+beautifulsoup4>=4.12
+pdfplumber>=0.10.0
+pytrends>=4.9.2
 ```

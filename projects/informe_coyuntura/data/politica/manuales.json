@@ -1,15 +1,11 @@
 {
   "_meta": {
-    "descripcion": "Indicadores manuales del cinturón político (capital político según Matus). Actualizar cuando haya nuevos datos. desactualizado se setea automáticamente si fecha_dato > 45 días. Los automáticos (votometro, ratio_dnu, movilizacion_cepa, iaf_transferencias) no van aquí.",
-    "indicadores": ["eficacia_legislativa", "cohesion_bloque", "gobernadores_alineamiento", "veto_quorum", "comisiones_caidas"]
-  },
-  "eficacia_legislativa": {
-    "valor": 42,
-    "estado": "placeholder",
-    "unidad": "% proyectos oficiales aprobados",
-    "fuente": "Seguimiento de votaciones en Diputados/Senado — elaboración CIGOB",
-    "notas": "% de proyectos enviados por el Ejecutivo que obtuvieron media sanción o aprobación definitiva en la legislatura en curso. Incluye leyes ordinarias y DNU ratificados.",
-    "fecha_dato": "2026-04-01"
+    "descripcion": "Indicadores manuales del cinturón político (capital político según Matus). Actualizar cuando haya nuevos datos. desactualizado se setea automáticamente si fecha_dato > 45 días. Los automáticos (votometro, ratio_dnu, movilizacion_cepa, iaf_transferencias, eficacia_legislativa, veto_quorum, comisiones_caidas) no van aquí.",
+    "indicadores": ["cohesion_bloque", "gobernadores_alineamiento"],
+    "pendiente_automatizacion": {
+      "cohesion_bloque": "votaciones CKAN congeladas en 2019 — LLA no existía, bloques actuales sin PERSONA_ID que mapee a votos históricos. Requiere headless browser (hcdn.gob.ar/votaciones) o fuente alternativa.",
+      "gobernadores_alineamiento": "métrica cualitativa — sin fuente estructurada disponible"
+    }
   },
   "cohesion_bloque": {
     "valor": 78,
@@ -26,21 +22,5 @@
     "fuente": "Análisis de declaraciones y adhesiones públicas — elaboración CIGOB",
     "notas": "% de gobernadores provinciales (sobre 24) cuya posición pública es de alineamiento o apoyo al programa del gobierno nacional. Incluye acuerdos fiscales, apoyo a reformas, participación en foros oficiales.",
     "fecha_dato": "2026-04-01"
-  },
-  "veto_quorum": {
-    "valor": 0,
-    "estado": "real",
-    "unidad": "% sesiones ordinarias frustradas por falta de quórum",
-    "fuente": "HCDN oficial — hcdn.gob.ar/sesiones/ — período 144 (2026)",
-    "notas": "0 de 2 sesiones ordinarias fracasaron en período 144 (2026): sesión ordinaria 8-abr y 29-abr, ambas exitosas. Sesión especial opositora (interpelación Adorni, 13-may-2026) desactivada antes de apertura formal por imposibilidad de reunir quórum opositor — señal de fortaleza relativa del gobierno.",
-    "fecha_dato": "2026-05-14"
-  },
-  "comisiones_caidas": {
-    "valor": 48,
-    "estado": "estimado_estructural",
-    "unidad": "% proyectos con dictamen que no llegaron al recinto",
-    "fuente": "Estimación estructural CIGOB — hcdn.gob.ar no disponible para período 144",
-    "notas": "Período 144 no calculable aún: comisiones recién constituidas en late-mar 2026, solo 2 sesiones celebradas (8-abr especial Ley Glaciares; 29-abr informativa Adorni), endpoints de dictámenes HCDN retornan 404. El 48% es estimación estructural basada en dinámica histórica del Congreso argentino. Actualizar con datos reales de hcdn.gob.ar/proyectos cuando haya al menos 5+ sesiones ordinarias con agenda completa (estimado: julio/agosto 2026).",
-    "fecha_dato": "2026-05-14"
   }
 }

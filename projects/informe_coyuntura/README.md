@@ -104,6 +104,19 @@ projects/informe_coyuntura/
 3. Correr los cuatro scripts para verificar que las fuentes respondan.
 4. Inspeccionar los outputs en `output/cache/*.json` (cada uno tiene indicadores, score y metadatos de extracción).
 
+## Documentación en Word (institucional)
+
+Los archivos `docs/*.md` se convierten a `.docx` con identidad visual CIGOB (logo, paleta institucional, header, footer y paginación) mediante pandoc + un template propio.
+
+Para regenerar todos los `.docx` desde sus `.md`:
+
+```powershell
+cd docs/template
+./build_all_docx.ps1
+```
+
+Detalles del sistema de templates en `docs/template/README.md`.
+
 ## Patrones técnicos consolidados
 
 - **Sesión POST en InfoLeg** (usado en `politica.py:fetch_ratio_dnu` y tres colectores de `gestion.py`): GET a la home para obtener `jsessionid`, extraer URL de acción del formulario con regex, POST con parámetros. La búsqueda es OR sobre tokens (no exacta); para aislar normas específicas usar vocabulario técnico exclusivo (ejemplo: "VPU" para RIGI).

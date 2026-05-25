@@ -42,11 +42,13 @@ def _extraer_per_capita(pdf_bytes: bytes) -> float | None:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             text = "\n".join(p.extract_text() or "" for p in pdf.pages)
 
-        # Patron verificado: "47,9 kg/año" o "47,3 kg/año"
+        # Patron verificado en PDFs 2025-2026
+        # El informe usa "46,2 kilos/año" (no "kg/año") a partir de 2026
         patterns = [
+            r'(\d{2,3}[,\.]\d)\s*kilos?/a[nñ]o',
+            r'(\d{2}[,\.]\d)\s*kg/a[nñ]o',
             r'consumo\s+per\s+c[aá]pita[^\n]{0,60}?(\d{1,3}[,\.]\d{1})\s*(?:kilos?|kg)',
             r'(\d{1,3}[,\.]\d{1})\s*(?:kilos?|kg)[^\n]{0,60}?per\s+c[aá]pita',
-            r'(\d{2}[,\.]\d)\s*kg/a[nñ]o',
         ]
         for pat in patterns:
             m = re.search(pat, text, re.IGNORECASE)

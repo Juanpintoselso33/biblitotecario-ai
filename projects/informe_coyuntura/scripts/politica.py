@@ -62,7 +62,7 @@ STALE_IAF_DAYS       = 365  # dato anual — válido todo el año
 HTTP_TIMEOUT = 20
 HTTP_HEADERS = {"User-Agent": "CIGOB-InformeCoyuntura/1.0"}
 
-CEPA_INFORMES_URL       = "https://centrocepa.com.ar/informes"
+CEPA_INFORMES_URL       = "https://centrocepa.com.ar/documentos/informes"
 CEPA_MAX_CASOS_MES      = 80.0
 CEPA_MAX_CONFLICTOS_TOT = 200.0
 
@@ -317,16 +317,25 @@ def fetch_cepa_movilizacion() -> dict | None:
         return None
 
     try:
-        r = requests.get(CEPA_INFORMES_URL, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
+        # La sección de informes está paginada (start=0, 10, 20...).
+        # Buscar en hasta 5 páginas (50 informes) para encontrar el más reciente
+        # con "conflictividad" o "conflictos-laborales" en la URL.
+        links = []
+        for page in range(5):
+            page_url = CEPA_INFORMES_URL if page == 0 else f"{CEPA_INFORMES_URL}?start={page * 10}"
+            r = requests.get(page_url, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+            r.raise_for_status()
+            soup = BeautifulSoup(r.text, "html.parser")
+            page_links = [
+                a for a in soup.find_all("a", href=True)
+                if any(kw in a.get("href", "").lower() for kw in ("conflictividad", "conflictos-laborales"))
+            ]
+            links.extend(page_links)
+            if links:
+                break
 
-        links = [
-            a for a in soup.find_all("a", href=True)
-            if "conflictividad" in a.get("href", "").lower()
-        ]
         if not links:
-            raise ValueError("No se encontraron links de conflictividad en la página de informes CEPA")
+            raise ValueError("No se encontraron links de conflictividad en las primeras 5 páginas de informes CEPA")
 
         def url_num(a):
             m = re.search(r"/(\d+)[/-]", a["href"])

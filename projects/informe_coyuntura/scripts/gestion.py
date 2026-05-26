@@ -47,7 +47,7 @@ BO_API_URL          = "https://www.boletinoficial.gob.ar/norma/detallePrimera"
 EMPLEO_PUBLICO_ID = "324.1_TOTAL_SECTAJO__36"  # sector público puestos trabajo (trimestral)
 IMPORTACIONES_ID  = "163.3_MTALTAL_0_0_7"       # importaciones totales (mensual, M USD)
 
-HTTP_TIMEOUT = 30
+HTTP_TIMEOUT = 60
 HTTP_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; CIGOB-Monitor/1.0)"}
 
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
@@ -94,6 +94,51 @@ def load_manuales() -> dict:
 
 def _warn(ind: str, err: Exception) -> None:
     print(f"[WARN] {CINTURON}.{ind}: {err}. Usando fallback.")
+
+
+def _infoleg_post(texto: str, tipo_norma: str, fecha_desde: tuple, fecha_hasta: tuple) -> int:
+    """
+    Sesión POST en InfoLeg con reintento automático (2 intentos).
+    Retorna el conteo de normas encontradas.
+    fecha_desde / fecha_hasta: (dia, mes, anio) como strings.
+    """
+    last_err = None
+    for attempt in range(2):
+        try:
+            session = requests.Session()
+            r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+            r_home.raise_for_status()
+
+            action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
+            if not action_m:
+                raise ValueError("No se encontró form action URL en InfoLeg home")
+            action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
+
+            post_data = {
+                "tipoNorma":    tipo_norma,
+                "numero":       "",
+                "anioSancion":  "",
+                "dependencia":  "",
+                "diaPubDesde":  fecha_desde[0],
+                "mesPubDesde":  fecha_desde[1],
+                "anioPubDesde": fecha_desde[2],
+                "diaPubHasta":  fecha_hasta[0],
+                "mesPubHasta":  fecha_hasta[1],
+                "anioPubHasta": fecha_hasta[2],
+                "texto":        texto,
+            }
+            r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
+            r.raise_for_status()
+
+            m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
+            if not m:
+                raise ValueError("Conteo no encontrado en respuesta InfoLeg")
+            return int(m.group(1))
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                print(f"[RETRY] infoleg texto='{texto}': {e}. Reintentando...")
+    raise last_err
 
 
 def _avance_to_tension(avance_pct: float) -> float:
@@ -240,42 +285,16 @@ def fetch_apertura_comercial() -> dict | None:
 def fetch_desregulacion_normativa() -> dict | None:
     """
     Cuenta normas publicadas desde dic-2023 que contienen "deroga" (InfoLeg sesión POST).
-    Requiere GET al home para obtener jsessionid, luego POST con rango de fechas.
     100 normas derogantes = avance 100%; escala lineal.
     """
     try:
-        session = requests.Session()
-        r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r_home.raise_for_status()
-
-        action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
-        if not action_m:
-            raise ValueError("No se encontró form action URL en InfoLeg home")
-        action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
-
         today = date.today()
-        post_data = {
-            "tipoNorma":   "",
-            "numero":      "",
-            "anioSancion": "",
-            "dependencia": "",
-            "diaPubDesde": "01",
-            "mesPubDesde": "12",
-            "anioPubDesde": "2023",
-            "diaPubHasta": today.strftime("%d"),
-            "mesPubHasta": today.strftime("%m"),
-            "anioPubHasta": today.strftime("%Y"),
-            "texto":       "deroga",
-        }
-        r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r.raise_for_status()
-
-        m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
-        if not m:
-            raise ValueError("Conteo no encontrado en respuesta InfoLeg")
-
-        count  = int(m.group(1))
-        avance = round(min(100.0, float(count)), 1)  # 100 normas derogantes = 100%
+        count = _infoleg_post(
+            texto="deroga", tipo_norma="",
+            fecha_desde=("01", "12", "2023"),
+            fecha_hasta=(today.strftime("%d"), today.strftime("%m"), today.strftime("%Y")),
+        )
+        avance = round(min(100.0, float(count)), 1)
         return {
             "valor":          count,
             "avance_pct":     avance,
@@ -325,41 +344,14 @@ def fetch_rigi_inversiones() -> dict | None:
     (Vehículo de Proyecto Único — término técnico exclusivo del RIGI, Ley 27.742).
     Desde 01/07/2024 (entrada en vigencia RIGI). Calibración: 28 normas ≈ 28% avance
     (validado contra dato manual may-2026: 16 proyectos = USD 27.210M aprobados = 28.7%).
-    Cada proyecto aprobado genera ~1.7 resoluciones (aprobación + complementarias).
-    Fórmula directa: avance_pct = min(100, count_VPU).
     """
     try:
-        session = requests.Session()
-        r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r_home.raise_for_status()
-
-        action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
-        if not action_m:
-            raise ValueError("No se encontró form action URL en InfoLeg home")
-        action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
-
         today = date.today()
-        post_data = {
-            "tipoNorma":    "3",  # Resolución
-            "numero":       "",
-            "anioSancion":  "",
-            "dependencia":  "",
-            "diaPubDesde":  "01",
-            "mesPubDesde":  "07",
-            "anioPubDesde": "2024",  # RIGI vigente desde Ley 27.742 (jul-2024)
-            "diaPubHasta":  today.strftime("%d"),
-            "mesPubHasta":  today.strftime("%m"),
-            "anioPubHasta": today.strftime("%Y"),
-            "texto":        "VPU",
-        }
-        r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r.raise_for_status()
-
-        m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
-        if not m:
-            raise ValueError("Conteo no encontrado en respuesta InfoLeg")
-
-        count  = int(m.group(1))
+        count = _infoleg_post(
+            texto="VPU", tipo_norma="3",
+            fecha_desde=("01", "07", "2024"),
+            fecha_hasta=(today.strftime("%d"), today.strftime("%m"), today.strftime("%Y")),
+        )
         avance = round(min(100.0, float(count)), 1)
         return {
             "valor":          count,
@@ -396,37 +388,12 @@ def fetch_reestructuracion_organismos() -> dict | None:
     Calibración: 18 actos = avance 40% (validado con estimación manual); 45 = 100%.
     """
     try:
-        session = requests.Session()
-        r_home = session.get(INFOLEG_HOME, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r_home.raise_for_status()
-
-        action_m = re.search(r'action="(/infolegInternet/[^"]+)"', r_home.text)
-        if not action_m:
-            raise ValueError("No se encontró form action URL en InfoLeg home")
-        action_url = "https://servicios.infoleg.gob.ar" + action_m.group(1)
-
         today = date.today()
-        post_data = {
-            "tipoNorma":    "",
-            "numero":       "",
-            "anioSancion":  "",
-            "dependencia":  "",
-            "diaPubDesde":  "01",
-            "mesPubDesde":  "12",
-            "anioPubDesde": "2023",
-            "diaPubHasta":  today.strftime("%d"),
-            "mesPubHasta":  today.strftime("%m"),
-            "anioPubHasta": today.strftime("%Y"),
-            "texto":        "disolucion",
-        }
-        r = session.post(action_url, data=post_data, headers=HTTP_HEADERS, timeout=HTTP_TIMEOUT)
-        r.raise_for_status()
-
-        m = re.search(r"Encontradas?[:\s]+(\d+)", r.text, re.IGNORECASE)
-        if not m:
-            raise ValueError("Conteo no encontrado en respuesta InfoLeg")
-
-        count  = int(m.group(1))
+        count = _infoleg_post(
+            texto="disolucion", tipo_norma="",
+            fecha_desde=("01", "12", "2023"),
+            fecha_hasta=(today.strftime("%d"), today.strftime("%m"), today.strftime("%Y")),
+        )
         avance = round(min(100.0, count * 100.0 / 45.0), 1)
         return {
             "valor":          count,

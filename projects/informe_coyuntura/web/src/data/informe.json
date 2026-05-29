@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "generated_at": "2026-05-23T12:47:45.390782",
   "period": "2026-05",
-  "score_global": 3.9,
+  "score_global": 4.0,
   "cinturones": {
     "macro": {
       "score": 2.1,
@@ -250,7 +250,7 @@
       "score_explicacion": "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión en el capital político."
     },
     "vida_cotidiana": {
-      "score": 3.6,
+      "score": 4.2,
       "estado": "en_tension",
       "barbarismo_riesgo": "político",
       "indicadores": {
@@ -260,9 +260,9 @@
           "fuente": "INDEC",
           "fecha_dato": "2026-03-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 0.6,
+          "aporte_formula": "4 canastas → 0 · 2,5 → 5 · 1 → 10 (salario formal / CBT)",
+          "aporte_nota": null
         },
         "ipc_alimentos": {
           "valor": 3.35,
@@ -270,9 +270,9 @@
           "fuente": "INDEC serie 146.3",
           "fecha_dato": "2026-03-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 3.4,
+          "aporte_formula": "0% → 0 · 5% → 5 · 10% → 10 (mensual)",
+          "aporte_nota": null
         },
         "endeudamiento_familiar": {
           "valor": 43.56,
@@ -282,7 +282,7 @@
           "desactualizado": false,
           "aporte_score": null,
           "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_nota": "Indicador de contexto. Es un stock nominal (sin deflactar ni normalizar por ingreso), por lo que su nivel absoluto no se traduce a una tensión comparable; se muestra como referencia y no incide en el score del cinturón."
         },
         "peso_tarifas": {
           "valor": 5.08,
@@ -290,9 +290,9 @@
           "fuente": "INDEC",
           "fecha_dato": "2026-03-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 5.1,
+          "aporte_formula": "0% → 0 · 5% → 5 · 10% → 10 (regulados, m/m)",
+          "aporte_nota": null
         },
         "consumo_carne": {
           "valor": 46.2,
@@ -300,9 +300,9 @@
           "fuente": "CICCRA",
           "fecha_dato": "2026-04",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 4.4,
+          "aporte_formula": "55 → 0 · 45 → 5 · 35 → 10 (kg/hab/año)",
+          "aporte_nota": null
         },
         "informalidad": {
           "valor": 36.8,
@@ -310,9 +310,9 @@
           "fuente": "INDEC EPH",
           "fecha_dato": "2025-01-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 4.7,
+          "aporte_formula": "25% → 0 · 37,5% → 5 · 50% → 10",
+          "aporte_nota": null
         },
         "mortalidad_pymes": {
           "valor": -6.11,
@@ -320,9 +320,9 @@
           "fuente": "INDEC",
           "fecha_dato": "2026-02-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 10.0,
+          "aporte_formula": "+5% → 0 · 0% → 5 · −5% → 10 (IPI m/m)",
+          "aporte_nota": null
         },
         "despacho_cemento": {
           "valor": 143.5,
@@ -330,9 +330,9 @@
           "fuente": "INDEC",
           "fecha_dato": "2026-02-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 3.6,
+          "aporte_formula": "180 → 0 · 130 → 5 · 80 → 10 (índice ISAC)",
+          "aporte_nota": null
         },
         "pluriempleo": {
           "valor": 7.8,
@@ -340,9 +340,9 @@
           "fuente": "INDEC EPH",
           "fecha_dato": "2025-10-01",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 2.8,
+          "aporte_formula": "5% → 0 · 10% → 5 · 15% → 10 (subocupación demandante)",
+          "aporte_nota": null
         },
         "inseguridad": {
           "valor": 2501057,
@@ -350,9 +350,9 @@
           "fuente": "SNIC",
           "fecha_dato": "2024",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 5.9,
+          "aporte_formula": "tasa/100k hab (pob. 46,7M): 3.000 → 0 · 5.000 → 5 · 7.000 → 10",
+          "aporte_nota": null
         },
         "icc_utdt": {
           "valor": 40.5,
@@ -370,9 +370,9 @@
           "fuente": "Google Trends",
           "fecha_dato": "2026-05-25",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 0.7,
+          "aporte_formula": "0 → 0 · 50 → 5 · 100 → 10 (interés en inflación/precios/inseguridad/trabajo: mayor = más preocupación)",
+          "aporte_nota": null
         },
         "patentamiento_motos": {
           "valor": 55363,
@@ -380,14 +380,14 @@
           "fuente": "CAFAM",
           "fecha_dato": "2026-05",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra como contexto y todavía no incide en el número del cinturón."
+          "aporte_score": 2.9,
+          "aporte_formula": "70.000 → 0 · 45.000 → 5 · 20.000 → 10 (unidades/mes)",
+          "aporte_nota": null
         }
       },
       "alerta": null,
       "fuente_enriquecida": "vida_cotidiana_20260525_2040.json",
-      "score_explicacion": "Se calcula hoy sobre un subconjunto histórico (IPC, desocupación e ICC). Los demás indicadores se muestran como contexto y aún no inciden en el número."
+      "score_explicacion": "Promedio simple de la tensión (0–10) de 12 indicadores con fórmula validada. El endeudamiento de consumo se muestra como contexto (stock nominal, no incide)."
     },
     "gestion": {
       "score": 5.8,

@@ -13,6 +13,9 @@ OUT = ROOT / "output"
 DATA = ROOT / "web" / "src" / "data"
 DATA.mkdir(parents=True, exist_ok=True)
 
+sys.path.insert(0, str(ROOT))
+from config import PESOS_CINTURONES, UMBRALES        # pesos y umbrales del informe
+
 
 def _add(out, key, valor, unidad, fuente, fecha, **extra):
     d = {"valor": valor, "unidad": unidad, "fuente": fuente,
@@ -131,6 +134,9 @@ def sanitizar_fuentes(informe):
 def _clamp10(x):
     return round(max(0.0, min(10.0, x)), 1)
 
+# Población usada para pasar conteos absolutos a tasa por 100.000 hab (INDEC 2024).
+POB_AR = 46_700_000
+
 # clave de indicador → (valor → tensión 0–10, texto de mapeo de referencia)
 SCORING = {
     # ── macro ──
@@ -155,23 +161,66 @@ SCORING = {
     "gobernadores_alineamiento": (lambda v: (80 - v) / 8,       "80% → 0 · 40% → 5 · 0% → 10"),
     "veto_quorum":               (lambda v: v / 3,              "0% → 0 · 15% → 5 · 30%+ → 10 (sesiones caídas)"),
     "comisiones_caidas":         (lambda v: (v - 20) / 4,       "20% → 0 · 40% → 5 · 60%+ → 10"),
-    # ── vida cotidiana ── (sólo ICC entra en el score legacy del cinturón)
-    "icc_utdt":                  (lambda v: (60 - v) / 3,       "60 → 0 · 45 → 5 · 30 → 10 (índice de confianza)"),
+    # ── vida cotidiana ── (metodología CIGOB validada may-2026; anclas de dominio)
+    "ipc_alimentos":       (lambda v: v,                "0% → 0 · 5% → 5 · 10% → 10 (mensual)"),
+    "peso_tarifas":        (lambda v: v,                "0% → 0 · 5% → 5 · 10% → 10 (regulados, m/m)"),
+    "brecha_salario_cbt":  (lambda v: (4 - v) * 10 / 3, "4 canastas → 0 · 2,5 → 5 · 1 → 10 (salario formal / CBT)"),
+    "consumo_carne":       (lambda v: (55 - v) / 2,     "55 → 0 · 45 → 5 · 35 → 10 (kg/hab/año)"),
+    "informalidad":        (lambda v: (v - 25) / 2.5,   "25% → 0 · 37,5% → 5 · 50% → 10"),
+    "mortalidad_pymes":    (lambda v: 5 - v,            "+5% → 0 · 0% → 5 · −5% → 10 (IPI m/m)"),
+    "despacho_cemento":    (lambda v: (180 - v) / 10,   "180 → 0 · 130 → 5 · 80 → 10 (índice ISAC)"),
+    "pluriempleo":         (lambda v: v - 5,            "5% → 0 · 10% → 5 · 15% → 10 (subocupación demandante)"),
+    "patentamiento_motos": (lambda v: (70_000 - v) / 5000, "70.000 → 0 · 45.000 → 5 · 20.000 → 10 (unidades/mes)"),
+    "icc_utdt":            (lambda v: (60 - v) / 3,     "60 → 0 · 45 → 5 · 30 → 10 (índice de confianza)"),
+    "sentimiento_digital": (lambda v: v / 10,           "0 → 0 · 50 → 5 · 100 → 10 (interés en inflación/precios/inseguridad/trabajo: mayor = más preocupación)"),
+    "inseguridad":         (lambda v: (v / POB_AR * 100_000 - 3000) / 400,
+                                                        "tasa/100k hab (pob. 46,7M): 3.000 → 0 · 5.000 → 5 · 7.000 → 10"),
 }
 
 GESTION_MAPA = ("10 × (1 − avance/100): a mayor avance ejecutado, menor tensión. "
                 "100% → 0 · 50% → 5 · 0% → 10.")
 
-VIDA_CONTEXTO = ("Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un "
-                 "subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra "
-                 "como contexto y todavía no incide en el número del cinturón.")
+VIDA_CONTEXTO = ("Indicador de contexto. Es un stock nominal (sin deflactar ni normalizar por "
+                 "ingreso), por lo que su nivel absoluto no se traduce a una tensión comparable; "
+                 "se muestra como referencia y no incide en el score del cinturón.")
 
 SCORE_EXPLICACION = {
     "macro":          "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión macroeconómica.",
     "politica":       "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión en el capital político.",
     "gestion":        "Promedio simple de la tensión de sus 12 reformas: a mayor avance ejecutado, menor tensión.",
-    "vida_cotidiana": "Se calcula hoy sobre un subconjunto histórico (IPC, desocupación e ICC). Los demás indicadores se muestran como contexto y aún no inciden en el número.",
+    "vida_cotidiana": "Promedio simple de la tensión (0–10) de 12 indicadores con fórmula validada. El endeudamiento de consumo se muestra como contexto (stock nominal, no incide).",
 }
+
+
+def _estado(score):
+    """Réplica de generar_informe._estado: traduce el score 0–10 a estado."""
+    if score <= UMBRALES["ESTABLE_MAX"]:
+        return "estable"
+    if score <= UMBRALES["EN_TENSION_MAX"]:
+        return "en_tension"
+    return "tensionado"
+
+
+def recomputar_vida_y_global(informe):
+    """Vida cotidiana se puntúa ahora con sus propios indicadores (no el legacy de
+    3 indicadores del colector): su score es el promedio de los aportes calculados
+    acá. Recalculamos su score + estado y, en consecuencia, el score global
+    ponderado, para que el snapshot sea internamente coherente.
+    (El colector vida_cotidiana.py sigue emitiendo el score legacy en su cache;
+    esta es la fuente de verdad del snapshot publicado.)"""
+    vida = informe["cinturones"]["vida_cotidiana"]
+    aportes = [i["aporte_score"] for i in vida["indicadores"].values()
+               if i.get("aporte_score") is not None]
+    if aportes:
+        vida["score"] = round(sum(aportes) / len(aportes), 1)
+        vida["estado"] = _estado(vida["score"])
+
+    num = sum(c["score"] * PESOS_CINTURONES.get(k, 0.0)
+              for k, c in informe["cinturones"].items())
+    den = sum(PESOS_CINTURONES.get(k, 0.0) for k in informe["cinturones"])
+    if den:
+        informe["score_global"] = round(num / den, 1)
+    return informe
 
 
 def aplicar_scoring(informe):
@@ -210,6 +259,7 @@ def main():
 
     informe = sanitizar_fuentes(informe)
     informe = aplicar_scoring(informe)
+    informe = recomputar_vida_y_global(informe)
 
     (DATA / "informe.json").write_text(
         json.dumps(informe, ensure_ascii=False, indent=2), encoding="utf-8")

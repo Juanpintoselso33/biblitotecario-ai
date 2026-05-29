@@ -1,0 +1,14 @@
+---
+import { sparkline } from "../lib/sparkline.ts";
+import { series } from "../lib/datos.ts";
+const { indicador, estado = "verde", w = 60, h = 22 } = Astro.props;
+const serie = series[indicador] ?? [];
+const sp = sparkline(serie, w, h);
+---
+{!sp.vacio && (
+  <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} preserveAspectRatio="none" aria-hidden="true">
+    <path class="cg-spark-area" d={sp.area} />
+    <path class="cg-spark-line" d={sp.linea} />
+    {sp.ultimo && <circle class={`cg-spark-dot ${estado}`} cx={sp.ultimo.x} cy={sp.ultimo.y} r="2" />}
+  </svg>
+)}

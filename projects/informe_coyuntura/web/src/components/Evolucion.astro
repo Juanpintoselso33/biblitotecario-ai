@@ -1,0 +1,27 @@
+---
+import MiniChart from "./MiniChart.astro";
+import { series } from "../lib/datos.ts";
+// Indicadores con serie histórica real (>=2 puntos). Política y gestión no tienen serie.
+const DESTACADOS = [
+  { indicador: "ipc_total", slug: "macro" },
+  { indicador: "tcrm", slug: "macro" },
+  { indicador: "reservas_bcra", slug: "macro" },
+  { indicador: "badlar", slug: "macro" },
+  { indicador: "recaudacion", slug: "macro" },
+  { indicador: "desocupacion", slug: "vida" },
+].filter(d => (series[d.indicador] ?? []).length >= 2);
+---
+<section class="cg-section" id="evolucion">
+  <div class="cg-section-head">
+    <p class="cg-eyebrow">Cómo va la película</p>
+    <h2 class="cg-h2">Evolución</h2>
+    <p class="cg-h2-sub">Series históricas de los indicadores automatizados. Política y gestión se incorporan a medida que acumulan historia.</p>
+  </div>
+  {DESTACADOS.length === 0 ? (
+    <div class="cg-chart-card"><p class="cg-chart-sub">Histórico en construcción: se necesita más de un período para graficar tendencias.</p></div>
+  ) : (
+    <div class="cg-chart-grid" id="cg-chart-grid">
+      {DESTACADOS.map(d => <MiniChart indicador={d.indicador} slug={d.slug} />)}
+    </div>
+  )}
+</section>

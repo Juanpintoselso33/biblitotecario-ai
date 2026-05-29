@@ -46,6 +46,31 @@ Cada colector corre de forma independiente. No es necesario correrlos todos.
 python scripts/generar_informe.py
 ```
 
+## Web pública
+
+La página pública del informe vive en `web/` (app Astro) y se publica en
+`https://juanpintoselso33.github.io/biblitotecario-ai/informe/`. Replica el
+observatorio de klipea (CSS propio de CIGOB) y se alimenta del snapshot de datos.
+
+Ciclo de actualización:
+
+```bash
+# 1. correr los colectores y regenerar el informe
+python scripts/generar_informe.py
+# 2. armar el snapshot que consume la web (web/src/data/{informe,series}.json)
+python scripts/publicar.py
+# 3. (opcional) previsualizar local
+cd web && npm install && npm run build && npm run preview
+# 4. commit del snapshot + push a main → GitHub Actions buildea y deploya
+```
+
+`scripts/publicar.py` enriquece el cinturón de vida cotidiana (3 → 13 indicadores
+desde `scripts/vida_cotidiana/data/`), agrupa las series en `series.json` y
+sanitiza rutas locales en los campos `fuente`. El deploy (`.github/workflows/pages.yml`)
+corre `npm ci && npm run build` antes de publicar. Detalle de diseño en
+`docs/specs/2026-05-29-informe-coyuntura-web-design.md` y plan en
+`docs/superpowers/plans/` (raíz del repo).
+
 ## Outputs
 
 | Archivo | Descripción |

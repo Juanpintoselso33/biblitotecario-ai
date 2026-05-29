@@ -18,6 +18,7 @@ export interface Cinturon {
   barbarismo_riesgo: string;
   indicadores: Record<string, Indicador>;
   alerta: string | null;
+  score_explicacion?: string;
 }
 export interface Informe {
   schema_version: string;

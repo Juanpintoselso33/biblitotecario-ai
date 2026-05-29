@@ -138,3 +138,34 @@
     font-size: 11px; font-weight: 800; text-transform: uppercase;
     letter-spacing: .08em; color: var(--muted); margin: 4px 0 6px;
 }
+
+/* ── Modal: cómo incide en el score (transparencia del scoring) ──── */
+.cg-modal-score {
+    background: var(--bg-page); border: 1px solid var(--bd);
+    border-radius: 10px; padding: 14px 16px; margin: 0 0 20px;
+}
+.cg-modal-score .cg-modal-h4 { margin-top: 0; }
+.cg-score-row { display: flex; align-items: center; gap: 14px; }
+.cg-score-val {
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+    font-size: 28px; color: var(--dark); line-height: 1; flex-shrink: 0;
+}
+.cg-score-val span { font-size: 14px; color: var(--muted); font-weight: 500; }
+.cg-score-track {
+    position: relative; flex: 1; height: 10px;
+    background: var(--bd-soft); border-radius: 999px; overflow: hidden;
+}
+.cg-score-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, #16A34A 0%, #EAB308 50%, #DC2626 100%);
+    min-width: 3px;
+}
+.cg-score-c0, .cg-score-c10 {
+    position: absolute; top: 13px; font-size: 9px; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted-soft); white-space: nowrap;
+}
+.cg-score-c0 { left: 0; } .cg-score-c10 { right: 0; }
+.cg-score-map { margin: 18px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--dark); }
+.cg-score-map strong { color: var(--muted); }
+.cg-score-note { margin: 8px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.cg-score-note strong { color: var(--dark); }

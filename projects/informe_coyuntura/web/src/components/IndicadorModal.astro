@@ -22,6 +22,10 @@ for (const [ckey, c] of Object.entries(informe.cinturones)) {
       valor: p.texto, unidad: p.unidad, unidadLarga: ind.unidad ?? "—",
       frecuencia: d.frecuencia, tipo: d.tipo,
       fuente: ind.fuente ?? "", fecha: ind.fecha_dato ?? "", estado,
+      aporteScore: ind.aporte_score ?? null,
+      aporteFormula: ind.aporte_formula ?? null,
+      aporteNota: ind.aporte_nota ?? null,
+      scoreCint: c.score, scoreExpl: c.score_explicacion ?? "",
     };
   }
 }
@@ -36,6 +40,7 @@ const seriesJson = JSON.stringify(series);
     <p class="cg-modal-desc" id="cg-modal-que"></p>
     <div class="cg-modal-aporta" id="cg-modal-aporta"></div>
     <dl class="cg-modal-ficha" id="cg-modal-ficha"></dl>
+    <div class="cg-modal-score" id="cg-modal-score"></div>
     <h4 class="cg-modal-h4" id="cg-modal-serie-h">Evolución histórica</h4>
     <p class="cg-modal-sub" id="cg-modal-sub"></p>
     <table class="cg-modal-table" id="cg-modal-table"></table>
@@ -80,6 +85,30 @@ const seriesJson = JSON.stringify(series);
         celda("Tipo de dato", d.tipo || "—") +
         celda("Actualización", `${d.fecha || "—"} · ${d.estado}`) +
         celda("Fuente", fuenteCorta, d.fuente);
+
+      const score = document.getElementById("cg-modal-score");
+      if (d.aporteScore != null) {
+        const pct = Math.max(0, Math.min(100, d.aporteScore * 10));
+        score.innerHTML =
+          `<h4 class="cg-modal-h4">Cómo incide en el score</h4>` +
+          `<div class="cg-score-row">` +
+            `<div class="cg-score-val">${nf.format(d.aporteScore)}<span>/10</span></div>` +
+            `<div class="cg-score-track"><div class="cg-score-fill" style="width:${pct}%"></div>` +
+              `<span class="cg-score-c0">sin tensión</span><span class="cg-score-c10">tensión máx.</span>` +
+            `</div>` +
+          `</div>` +
+          (d.aporteFormula ? `<p class="cg-score-map"><strong>Cómo se calcula:</strong> ${esc(d.aporteFormula)}</p>` : "") +
+          `<p class="cg-score-note">Este indicador aporta <strong>${nf.format(d.aporteScore)} de 10</strong> de tensión. ` +
+            `El score del cinturón (<strong>${nf.format(d.scoreCint)}/10</strong>) es el promedio de las tensiones de todos sus indicadores.</p>`;
+        score.style.display = "";
+      } else if (d.aporteNota) {
+        score.innerHTML =
+          `<h4 class="cg-modal-h4">Cómo incide en el score</h4>` +
+          `<p class="cg-score-note">${esc(d.aporteNota)}</p>`;
+        score.style.display = "";
+      } else {
+        score.style.display = "none";
+      }
 
       const serieH = document.getElementById("cg-modal-serie-h");
       const sub = document.getElementById("cg-modal-sub");

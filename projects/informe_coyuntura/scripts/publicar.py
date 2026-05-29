@@ -120,6 +120,83 @@ def sanitizar_fuentes(informe):
     return informe
 
 
+# ── Aporte al score por indicador ──────────────────────────────────────────────
+# Fuente única de verdad de la transparencia del scoring: replica EXACTAMENTE las
+# fórmulas de tensión documentadas en los colectores (macro.py, politica.py,
+# gestion.py). El texto de mapeo viene verbatim de esas docstrings. Un test de
+# reconciliación (tests/test_publicar.py) verifica que el promedio de los aportes
+# reproduce el score publicado de cada cinturón — si una fórmula cambia, el test
+# avisa y esto deja de ser una caja negra.
+
+def _clamp10(x):
+    return round(max(0.0, min(10.0, x)), 1)
+
+# clave de indicador → (valor → tensión 0–10, texto de mapeo de referencia)
+SCORING = {
+    # ── macro ──
+    "ipc_total":           (lambda v: v,                  "0% → 0 · 5% → 5 · 10% → 10 (mensual)"),
+    "reservas_bcra":       (lambda v: (40000 - v) / 4000, "≥40.000 → 0 · 20.000 → 5 · 0 → 10 (US$ M)"),
+    "badlar":              (lambda v: v / 10,             "0% → 0 · 50% → 5 · 100% → 10 (anual)"),
+    "emae_ia":             (lambda v: 5 - v,              "+5% → 0 · 0% → 5 · −5% → 10 (i.a.)"),
+    "saldo_comercial_12m": (lambda v: 5 - v / 1200,       "+6.000 → 0 · 0 → 5 · −6.000 → 10 (US$ M, 12m)"),
+    "recaudacion":         (lambda v: 5 - v,              "+5% → 0 · 0% → 5 · −5% → 10 (var. m/m nominal)"),
+    "tcrm":                (lambda v: (100 - v) / 5,      "100 → 0 · 75 → 5 · 50 → 10 (índice 2010)"),
+    "rem_ipc_12m":         (lambda v: (v - 10) / 9,       "10% → 0 · 55% → 5 · 100% → 9 (anual)"),
+    "prestamos_privados":  (lambda v: 5 - v,              "+5% → 0 · 0% → 5 · −5% → 10 (var. m/m nominal)"),
+    "base_monetaria":      (lambda v: v / 2,              "0% → 0 · 10% → 5 · 20% → 10 (var. m/m nominal)"),
+    "tc_mayorista":        (lambda v: v / 2,              "0% → 0 · 10% → 5 · 20% → 10 (var. m/m)"),
+    # ── política ──
+    "votometro_ventaja_lla":     (lambda v: 5 - v / 3,          "+15pp → 0 · 0 → 5 · −15pp → 10 (gap LLA−PJ)"),
+    "ratio_dnu":                 (lambda v: v * 5,              "0 → 0 · 1,0 → 5 · 2,0+ → 10 (DNU/leyes)"),
+    "movilizacion_cepa":         (lambda v: v / 10,             "0 → 0 · 50 → 5 · 100 → 10 (índice)"),
+    "iaf_transferencias":        (lambda v: (0.10 - v / 100) * 25, "+10% → 0 · 0% → 2,5 · −10% → 5 · −30% → 10 (var. real i.a.)"),
+    "eficacia_legislativa":      (lambda v: (70 - v) / 7,       "70% → 0 · 35% → 5 · 0% → 10"),
+    "cohesion_bloque":           (lambda v: (95 - v) / 7,       "95% → 0 · 60% → 5 · 25% → 10"),
+    "gobernadores_alineamiento": (lambda v: (80 - v) / 8,       "80% → 0 · 40% → 5 · 0% → 10"),
+    "veto_quorum":               (lambda v: v / 3,              "0% → 0 · 15% → 5 · 30%+ → 10 (sesiones caídas)"),
+    "comisiones_caidas":         (lambda v: (v - 20) / 4,       "20% → 0 · 40% → 5 · 60%+ → 10"),
+    # ── vida cotidiana ── (sólo ICC entra en el score legacy del cinturón)
+    "icc_utdt":                  (lambda v: (60 - v) / 3,       "60 → 0 · 45 → 5 · 30 → 10 (índice de confianza)"),
+}
+
+GESTION_MAPA = ("10 × (1 − avance/100): a mayor avance ejecutado, menor tensión. "
+                "100% → 0 · 50% → 5 · 0% → 10.")
+
+VIDA_CONTEXTO = ("Indicador de contexto. Hoy el score de Vida cotidiana se calcula sobre un "
+                 "subconjunto histórico (IPC, desocupación e ICC); este indicador se muestra "
+                 "como contexto y todavía no incide en el número del cinturón.")
+
+SCORE_EXPLICACION = {
+    "macro":          "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión macroeconómica.",
+    "politica":       "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión en el capital político.",
+    "gestion":        "Promedio simple de la tensión de sus 12 reformas: a mayor avance ejecutado, menor tensión.",
+    "vida_cotidiana": "Se calcula hoy sobre un subconjunto histórico (IPC, desocupación e ICC). Los demás indicadores se muestran como contexto y aún no inciden en el número.",
+}
+
+
+def aplicar_scoring(informe):
+    """Anota cada indicador con su aporte de tensión (0–10) y el mapeo que lo
+    explica, y cada cinturón con cómo se compone su score."""
+    for ckey, c in informe["cinturones"].items():
+        c["score_explicacion"] = SCORE_EXPLICACION.get(ckey, "")
+        for ikey, ind in c["indicadores"].items():
+            aporte = formula = nota = None
+            valor = ind.get("valor")
+            avance = ind.get("avance_pct")
+            if ikey in SCORING and isinstance(valor, (int, float)):
+                fn, formula = SCORING[ikey]
+                aporte = _clamp10(fn(float(valor)))
+            elif isinstance(avance, (int, float)):
+                aporte = _clamp10(10.0 * (1.0 - float(avance) / 100.0))
+                formula = GESTION_MAPA
+            elif ckey == "vida_cotidiana":
+                nota = VIDA_CONTEXTO
+            ind["aporte_score"] = aporte
+            ind["aporte_formula"] = formula
+            ind["aporte_nota"] = nota
+    return informe
+
+
 def main():
     informe = json.loads((OUT / "informe.json").read_text(encoding="utf-8"))
 
@@ -132,6 +209,7 @@ def main():
             informe["cinturones"]["vida_cotidiana"]["fuente_enriquecida"] = os.path.basename(vida_files[-1])
 
     informe = sanitizar_fuentes(informe)
+    informe = aplicar_scoring(informe)
 
     (DATA / "informe.json").write_text(
         json.dumps(informe, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -1,5 +1,5 @@
 ---
-import { informe, cinturonesRojos } from "../lib/datos.ts";
+import { informe, cinturonesRojos, cap } from "../lib/datos.ts";
 const rojos = cinturonesRojos(informe);
 ---
 <header class="cg-hero" id="top">
@@ -14,7 +14,7 @@ const rojos = cinturonesRojos(informe);
       <div class="cg-hero-stat"><div class="cg-hero-stat-num">{informe.period}</div><div class="cg-hero-stat-lbl">Período</div></div>
       <div class="cg-hero-stat"><div class="cg-hero-stat-num">{rojos}</div><div class="cg-hero-stat-lbl">Cinturones en rojo</div></div>
       <div class="cg-hero-stat"><div class="cg-hero-stat-num">{informe.score_global}</div><div class="cg-hero-stat-lbl">Score global /10</div></div>
-      <div class="cg-hero-stat"><div class="cg-hero-stat-num" style="font-size:20px;">{informe.barbarismo_activo}</div><div class="cg-hero-stat-lbl">Riesgo dominante</div></div>
+      <div class="cg-hero-stat"><div class="cg-hero-stat-num" style="font-size:20px;">{cap(informe.barbarismo_activo)}</div><div class="cg-hero-stat-lbl">Riesgo dominante</div></div>
     </div>
     <p class="cg-hero-meta">
       <span class:list={["cg-status-pill", informe.alerta_multicinturon ? "is-err" : "is-signed"]}>

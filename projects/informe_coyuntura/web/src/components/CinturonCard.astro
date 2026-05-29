@@ -1,25 +1,31 @@
 ---
-import { verdictDeCinturon, indicadoresOrdenados } from "../lib/datos.ts";
+import { verdictDeCinturon, indicadoresOrdenados, cap } from "../lib/datos.ts";
 import IndicadorRow from "./IndicadorRow.astro";
 const { slug, nombre, sub, cinturon } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const verdict = verdictDeCinturon(cinturon.estado);
 const verdictLabel = { verde: "Estable", amarillo: "En tensión", rojo: "Crítico" }[verdict];
 const filas = indicadoresOrdenados(cinturon);
+const MAX = 6;
+const visibles = filas.slice(0, MAX);
+const ocultos = filas.length - visibles.length;
+const href = `${base}/${slug}/`;
 ---
 <article class:list={["cg-cint", `cg-cint--${slug}`]}>
   <div class="cg-cint-head">
     <div class="cg-cint-titles">
       <div class="cg-cint-sub">{sub}</div>
-      <div class="cg-cint-name">{nombre}</div>
+      <div class="cg-cint-name"><a href={href} class="cg-cint-link">{nombre}</a></div>
     </div>
     <span class:list={["cg-verdict", verdict]}>
       <span class="cg-verdict-dot"></span>{verdictLabel}
     </span>
   </div>
   <ul class="cg-ind-list">
-    {filas.map(({ key, ind, bucket }) => <IndicadorRow ikey={key} ind={ind} bucket={bucket} />)}
+    {visibles.map(({ key, ind, bucket }) => <IndicadorRow ikey={key} ind={ind} bucket={bucket} />)}
   </ul>
   <div class="cg-cint-foot">
-    Score <strong>{cinturon.score}/10</strong> · riesgo {cinturon.barbarismo_riesgo}
+    <span>Score <strong>{cinturon.score}/10</strong> · {cap(cinturon.barbarismo_riesgo)}</span>
+    <a href={href} class="cg-cint-ver">{ocultos > 0 ? `+${ocultos} · ver detalle` : "Ver detalle"} →</a>
   </div>
 </article>

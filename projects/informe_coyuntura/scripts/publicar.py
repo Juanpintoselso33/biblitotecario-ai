@@ -37,8 +37,12 @@ def build_vida(raw):
     _add(out, "ipc_alimentos", round(al.get("variacion_mensual_pct", 0), 2),
          "% m/m", "INDEC serie 146.3", al.get("fecha"))
     cc = bcra.get("credito_consumo_total", {})
-    _add(out, "endeudamiento_familiar", cc.get("valor"),
-         "millones $ (consumo)", "BCRA API v4.0", cc.get("fecha"))
+    # El crédito de consumo viene en millones de pesos; pasar a billones para
+    # que el número no sea gigante (43.560.544 millones = 43,56 billones).
+    cc_val = cc.get("valor")
+    _add(out, "endeudamiento_familiar",
+         round(cc_val / 1e6, 2) if isinstance(cc_val, (int, float)) else cc_val,
+         "billones de pesos (consumo)", "BCRA API v4.0", cc.get("fecha"))
     reg = indec.get("ipc_regulados", {})
     _add(out, "peso_tarifas", round(reg.get("variacion_mensual_pct", 0), 2),
          "% m/m regulados", "INDEC", reg.get("fecha"))

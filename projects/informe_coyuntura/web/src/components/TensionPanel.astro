@@ -1,10 +1,10 @@
 ---
-import { informe, CINTURONES, verdictDeCinturon, cinturonesRojos } from "../lib/datos.ts";
+import { informe, CINTURONES, verdictDeCinturon, cinturonesRojos, cap } from "../lib/datos.ts";
 const rojos = cinturonesRojos(informe);
 ---
 <div class="cg-panel" id="cg-tension">
   <p class="cg-eyebrow">Tensión sistémica</p>
-  <h3>Riesgo dominante: {informe.barbarismo_activo}</h3>
+  <h3>Riesgo dominante: {cap(informe.barbarismo_activo)}</h3>
   <div class="cg-matriz">
     {CINTURONES.map(c => {
       const v = verdictDeCinturon(informe.cinturones[c.key].estado);
@@ -12,7 +12,7 @@ const rojos = cinturonesRojos(informe);
       return (
         <span class="cg-matriz-item">
           <span class="cg-dot" style={`background:${color}`}></span>
-          {c.nombre} · {informe.cinturones[c.key].barbarismo_riesgo}
+          {c.nombre} · {cap(informe.cinturones[c.key].barbarismo_riesgo)}
         </span>
       );
     })}

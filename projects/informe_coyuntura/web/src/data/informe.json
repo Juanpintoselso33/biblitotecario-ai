@@ -207,8 +207,8 @@
           "desactualizado": false
         },
         "endeudamiento_familiar": {
-          "valor": 43560544.0,
-          "unidad": "millones $ (consumo)",
+          "valor": 43.56,
+          "unidad": "billones de pesos (consumo)",
           "fuente": "BCRA API v4.0",
           "fecha_dato": "2026-05-19",
           "desactualizado": false

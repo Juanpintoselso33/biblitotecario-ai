@@ -1,9 +1,23 @@
 ---
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const path = Astro.url.pathname.replace(/\/$/, "");
+const links = [
+  { href: `${base}/`, label: "Resumen", seg: "" },
+  { href: `${base}/macro/`, label: "Macro", seg: "macro" },
+  { href: `${base}/politica/`, label: "Política", seg: "politica" },
+  { href: `${base}/vida/`, label: "Vida cotidiana", seg: "vida" },
+  { href: `${base}/gestion/`, label: "Gestión", seg: "gestion" },
+  { href: `${base}/#metodologia`, label: "Metodología", seg: "__none__" },
+];
+function isActive(seg: string): boolean {
+  if (seg === "__none__") return false;
+  if (seg === "") return path === base;
+  return path === `${base}/${seg}`;
+}
 ---
 <nav class="cg-nav">
   <div class="cg-nav-inner">
-    <a class="cg-nav-brand" href="#top">
+    <a class="cg-nav-brand" href={`${base}/`}>
       <span class="cg-nav-logo"><img src={`${base}/logo-cigob.png`} alt="CiGob" /></span>
       <span class="cg-nav-titles">
         <span class="cg-nav-title">Realidad Política Argentina</span>
@@ -11,10 +25,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       </span>
     </a>
     <div class="cg-nav-links">
-      <a href="#snapshot">Mes actual</a>
-      <a href="#evolucion">Evolución</a>
-      <a href="#archivo">Archivo</a>
-      <a href="#metodologia">Metodología</a>
+      {links.map(l => (
+        <a href={l.href} class:list={{ active: isActive(l.seg) }} aria-current={isActive(l.seg) ? "page" : undefined}>{l.label}</a>
+      ))}
     </div>
   </div>
 </nav>

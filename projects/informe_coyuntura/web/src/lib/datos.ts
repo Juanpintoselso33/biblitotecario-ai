@@ -101,10 +101,16 @@ export function label(key: string): string {
 
 // Formato de valor: números con separador es-AR; strings tal cual; null → "—"
 const NF = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+const NF_COMPACT = new Intl.NumberFormat("es-AR", { notation: "compact", maximumFractionDigits: 1 });
 export function formatValor(valor: unknown): string {
   if (valor === null || valor === undefined) return "—";
   if (typeof valor === "number") return NF.format(valor);
   return String(valor);
+}
+
+// Capitaliza la primera letra (para barbarismos: "gerencial" → "Gerencial").
+export function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 // Aclaración chica para buckets no-frescos
@@ -127,7 +133,7 @@ export const UNIDADES_CORTAS: Record<string, string> = {
   iaf_transferencias: "% real", eficacia_legislativa: "%", cohesion_bloque: "%",
   gobernadores_alineamiento: "%", veto_quorum: "%", comisiones_caidas: "%",
   // vida cotidiana
-  brecha_salario_cbt: "canastas", ipc_alimentos: "% m/m", endeudamiento_familiar: "$ M",
+  brecha_salario_cbt: "canastas", ipc_alimentos: "% m/m", endeudamiento_familiar: "bill. $",
   peso_tarifas: "% m/m", consumo_carne: "kg/hab", informalidad: "%", mortalidad_pymes: "% m/m",
   despacho_cemento: "índice", pluriempleo: "%", inseguridad: "hechos", icc_utdt: "índice",
   sentimiento_digital: "0–100", patentamiento_motos: "u.",
@@ -144,7 +150,9 @@ export interface Presentacion { texto: string; unidad: string; titulo: string; }
 // La descripción larga (o el texto de estado) queda en `titulo` (tooltip).
 export function presentacion(key: string, ind: Indicador): Presentacion {
   if (typeof ind.valor === "number") {
-    return { texto: formatValor(ind.valor), unidad: UNIDADES_CORTAS[key] ?? "", titulo: ind.unidad ?? "" };
+    // Números muy grandes (ej. cantidad de hechos delictivos) en notación compacta.
+    const texto = Math.abs(ind.valor) >= 1e6 ? NF_COMPACT.format(ind.valor) : formatValor(ind.valor);
+    return { texto, unidad: UNIDADES_CORTAS[key] ?? "", titulo: ind.unidad ?? "" };
   }
   if (typeof ind.avance_pct === "number") {
     const detalle = typeof ind.valor === "string" ? ind.valor : (ind.unidad ?? "");
@@ -156,4 +164,24 @@ export function presentacion(key: string, ind: Indicador): Presentacion {
 // Conteo de cinturones "rojos" (para hero + tensión)
 export function cinturonesRojos(inf: Informe): number {
   return Object.values(inf.cinturones).filter(c => verdictDeCinturon(c.estado) === "rojo").length;
+}
+
+// ── Helpers para las páginas de detalle por cinturón ──────────────────
+export type CinturonMeta = (typeof CINTURONES)[number];
+
+export function cinturonPorSlug(slug: string): CinturonMeta | undefined {
+  return CINTURONES.find(c => c.slug === slug);
+}
+
+// Indicadores de un cinturón que tienen serie histórica (>=2 puntos), con su slug
+// de color, para los mini-charts de evolución de la página de detalle.
+export function indicadoresConSerie(c: Cinturon): string[] {
+  return Object.keys(c.indicadores).filter(k => (series[k] ?? []).length >= 2);
+}
+
+// Fuentes únicas de un cinturón (para la sección de fuentes de su página).
+export function fuentesDeCinturon(c: Cinturon): string[] {
+  return [...new Set(
+    Object.values(c.indicadores).map(i => i.fuente).filter(Boolean) as string[]
+  )].sort();
 }

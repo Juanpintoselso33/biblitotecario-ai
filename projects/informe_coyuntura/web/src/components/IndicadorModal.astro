@@ -1,0 +1,40 @@
+---
+import { series, label } from "../lib/datos.ts";
+const seriesJson = JSON.stringify(series);
+const labelsJson = JSON.stringify(
+  Object.fromEntries(Object.keys(series).map(k => [k, label(k)]))
+);
+---
+<div class="cg-modal" id="cg-modal" hidden>
+  <div class="cg-modal-card">
+    <button class="cg-modal-close" id="cg-modal-close" aria-label="Cerrar">×</button>
+    <p class="cg-eyebrow" id="cg-modal-eyebrow">Indicador</p>
+    <h3 class="cg-modal-title" id="cg-modal-title"></h3>
+    <p class="cg-modal-sub" id="cg-modal-sub"></p>
+    <table class="cg-modal-table" id="cg-modal-table"></table>
+  </div>
+</div>
+<script type="application/json" id="cg-series-data" set:html={seriesJson}></script>
+<script type="application/json" id="cg-labels-data" set:html={labelsJson}></script>
+<script>
+  const SERIES = JSON.parse(document.getElementById("cg-series-data").textContent);
+  const LABELS = JSON.parse(document.getElementById("cg-labels-data").textContent);
+  const modal = document.getElementById("cg-modal");
+  const close = () => modal.setAttribute("hidden", "");
+  document.getElementById("cg-modal-close").addEventListener("click", close);
+  modal.addEventListener("click", e => { if (e.target === modal) close(); });
+  document.querySelectorAll(".cg-ind--clickable[data-indicador]").forEach(li => {
+    li.addEventListener("click", () => {
+      const key = li.getAttribute("data-indicador");
+      const serie = SERIES[key] || [];
+      document.getElementById("cg-modal-title").textContent = LABELS[key] || key;
+      document.getElementById("cg-modal-sub").textContent =
+        serie.length ? `${serie.length} datos históricos` : "Sin serie histórica disponible";
+      const rows = serie.slice(-12).reverse()
+        .map(p => `<tr><td>${p.fecha}</td><td>${p.valor.toLocaleString("es-AR")}</td></tr>`).join("");
+      document.getElementById("cg-modal-table").innerHTML =
+        serie.length ? `<thead><tr><th>Fecha</th><th>Valor</th></tr></thead><tbody>${rows}</tbody>` : "";
+      modal.removeAttribute("hidden");
+    });
+  });
+</script>

@@ -114,6 +114,45 @@ export function aclaracion(b: Bucket, ind: Indicador): string | null {
   return null;
 }
 
+// Unidad CORTA por indicador para mostrar junto al valor. La unidad larga de
+// informe.json (descriptiva) va al atributo title de la fila — si se mostrara
+// entera desborda la card. Sólo para indicadores con valor numérico.
+export const UNIDADES_CORTAS: Record<string, string> = {
+  // macro
+  ipc_total: "%", reservas_bcra: "US$ M", badlar: "%", emae_ia: "% i.a.",
+  saldo_comercial_12m: "US$ M", recaudacion: "% m/m", tcrm: "índice", rem_ipc_12m: "%",
+  prestamos_privados: "% m/m", base_monetaria: "% m/m", tc_mayorista: "% m/m",
+  // politica
+  votometro_ventaja_lla: "pp", ratio_dnu: "ratio", movilizacion_cepa: "índice",
+  iaf_transferencias: "% real", eficacia_legislativa: "%", cohesion_bloque: "%",
+  gobernadores_alineamiento: "%", veto_quorum: "%", comisiones_caidas: "%",
+  // vida cotidiana
+  brecha_salario_cbt: "canastas", ipc_alimentos: "% m/m", endeudamiento_familiar: "$ M",
+  peso_tarifas: "% m/m", consumo_carne: "kg/hab", informalidad: "%", mortalidad_pymes: "% m/m",
+  despacho_cemento: "índice", pluriempleo: "%", inseguridad: "hechos", icc_utdt: "índice",
+  sentimiento_digital: "0–100", patentamiento_motos: "u.",
+  // gestion (las de avance se resuelven aparte)
+  cepo_mulc: "%", reduccion_estado: "%", apertura_comercial: "% i.a.",
+};
+
+export interface Presentacion { texto: string; unidad: string; titulo: string; }
+
+// Decide qué mostrar en la columna de valor sin desbordar:
+// - valor numérico → el número + unidad corta
+// - valor no numérico pero hay avance_pct → el avance (% avance)
+// - nada usable → "—"
+// La descripción larga (o el texto de estado) queda en `titulo` (tooltip).
+export function presentacion(key: string, ind: Indicador): Presentacion {
+  if (typeof ind.valor === "number") {
+    return { texto: formatValor(ind.valor), unidad: UNIDADES_CORTAS[key] ?? "", titulo: ind.unidad ?? "" };
+  }
+  if (typeof ind.avance_pct === "number") {
+    const detalle = typeof ind.valor === "string" ? ind.valor : (ind.unidad ?? "");
+    return { texto: formatValor(ind.avance_pct), unidad: "% avance", titulo: detalle };
+  }
+  return { texto: "—", unidad: "", titulo: ind.unidad ?? "" };
+}
+
 // Conteo de cinturones "rojos" (para hero + tensión)
 export function cinturonesRojos(inf: Informe): number {
   return Object.values(inf.cinturones).filter(c => verdictDeCinturon(c.estado) === "rojo").length;

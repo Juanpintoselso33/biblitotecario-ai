@@ -1,12 +1,13 @@
 ---
-import { label, formatValor, aclaracion } from "../lib/datos.ts";
+import { label, aclaracion, presentacion } from "../lib/datos.ts";
 import Sparkline from "./Sparkline.astro";
 const { ikey, ind, bucket } = Astro.props;
 const estDot = bucket === "fresco" ? "verde" : bucket === "manual" ? "amarillo" : "rojo";
 const nota = aclaracion(bucket, ind);
 const clickable = bucket !== "placeholder";
+const pres = presentacion(ikey, ind);
 ---
-<li class:list={["cg-ind", { "cg-ind--clickable": clickable }]} data-indicador={ikey}>
+<li class:list={["cg-ind", { "cg-ind--clickable": clickable }]} data-indicador={ikey} title={pres.titulo}>
   <span class="cg-ind-name">
     {label(ikey)}
     {nota && <em style="font-style:normal;color:var(--muted-soft);font-size:11px;margin-left:6px;">({nota})</em>}
@@ -15,8 +16,8 @@ const clickable = bucket !== "placeholder";
     <span class="cg-ind-sparkline"><Sparkline indicador={ikey} estado={estDot} /></span>
   )}
   <span class="cg-ind-value">
-    {formatValor(ind.valor)}
-    <span class="cg-ind-unit">{ind.unidad}</span>
+    {pres.texto}
+    {pres.unidad && <span class="cg-ind-unit">{pres.unidad}</span>}
     <span class:list={["cg-ind-est", estDot]}></span>
   </span>
 </li>

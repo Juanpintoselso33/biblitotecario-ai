@@ -1,7 +1,58 @@
 ---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Hero from "../components/Hero.astro";
+import Bluf from "../components/Bluf.astro";
+import CinturonCard from "../components/CinturonCard.astro";
+import Evolucion from "../components/Evolucion.astro";
+import TensionPanel from "../components/TensionPanel.astro";
+import Recomendaciones from "../components/Recomendaciones.astro";
+import Archivo from "../components/Archivo.astro";
+import Metodologia from "../components/Metodologia.astro";
+import Fuentes from "../components/Fuentes.astro";
+import Footer from "../components/Footer.astro";
+import IndicadorModal from "../components/IndicadorModal.astro";
+import { informe, CINTURONES } from "../lib/datos.ts";
 ---
-<!DOCTYPE html>
-<html lang="es">
-  <head><meta charset="utf-8" /><title>Informe de Coyuntura</title></head>
-  <body><h1>OK build</h1></body>
-</html>
+<Layout>
+  <Nav />
+  <Hero />
+  <main class="cg-main">
+    <Bluf />
+    <section class="cg-section">
+      <div class="cg-section-head">
+        <p class="cg-eyebrow">Diagnóstico por capa</p>
+        <h2 class="cg-h2">Los cinturones, hoy</h2>
+        <p class="cg-h2-sub">Cada card ordena primero los indicadores automatizados con dato fresco.</p>
+      </div>
+      <div class="cg-grid">
+        {CINTURONES.map(c => (
+          <CinturonCard slug={c.slug} nombre={c.nombre} sub={c.sub} cinturon={informe.cinturones[c.key]} />
+        ))}
+        <article class="cg-cint cg-cint--humor" style="opacity:.55;">
+          <div class="cg-cint-head">
+            <div class="cg-cint-titles">
+              <div class="cg-cint-sub">El humor social</div>
+              <div class="cg-cint-name">Espíritu de la época</div>
+            </div>
+            <span class="cg-verdict" style="color:var(--muted);"><span class="cg-verdict-dot" style="background:var(--muted);"></span>Próximamente</span>
+          </div>
+          <div class="cg-cint-empty">Quinto cinturón en desarrollo — metodología pendiente.</div>
+        </article>
+      </div>
+    </section>
+    <Evolucion />
+    <section class="cg-section">
+      <div class="cg-section-head"><p class="cg-eyebrow">Lectura cruzada</p><h2 class="cg-h2">Tensión sistémica</h2></div>
+      <div class="cg-twocol">
+        <TensionPanel />
+        <Recomendaciones />
+      </div>
+    </section>
+    <Archivo />
+    <Metodologia />
+    <Fuentes />
+  </main>
+  <Footer />
+  <IndicadorModal />
+</Layout>

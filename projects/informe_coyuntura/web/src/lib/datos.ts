@@ -1,0 +1,120 @@
+import informeRaw from "../data/informe.json";
+import seriesRaw from "../data/series.json";
+
+export interface Indicador {
+  valor: number | string | null;
+  unidad: string;
+  fuente: string;
+  fecha_dato: string;
+  desactualizado: boolean;
+  estado?: string;        // "placeholder" cuando aplica
+  avance_pct?: number;
+  notas?: string;
+  [k: string]: unknown;
+}
+export interface Cinturon {
+  score: number;
+  estado: string;         // estable | en_tension | critico
+  barbarismo_riesgo: string;
+  indicadores: Record<string, Indicador>;
+  alerta: string | null;
+}
+export interface Informe {
+  schema_version: string;
+  generated_at: string;
+  period: string;
+  score_global: number;
+  cinturones: Record<"macro" | "politica" | "vida_cotidiana" | "gestion", Cinturon>;
+  barbarismo_activo: string;
+  alerta_multicinturon: boolean;
+  flags: string[];
+}
+
+export const informe = informeRaw as unknown as Informe;
+export const series = seriesRaw as Record<string, { fecha: string; valor: number }[]>;
+
+// Orden y metadatos de presentación de los cinturones (mapeo a clases .cg-cint--*)
+export const CINTURONES = [
+  { key: "macro",          slug: "macro",    nombre: "Macroeconomía",   sub: "El motor económico" },
+  { key: "politica",       slug: "politica", nombre: "Política",        sub: "El tablero de poder" },
+  { key: "vida_cotidiana", slug: "vida",     nombre: "Vida cotidiana",  sub: "El bolsillo y la calle" },
+  { key: "gestion",        slug: "gestion",  nombre: "Gestión",         sub: "La capacidad de ejecutar" },
+] as const;
+
+// Semáforo del cinturón a partir de su estado
+export function verdictDeCinturon(estado: string): "verde" | "amarillo" | "rojo" {
+  if (estado === "estable") return "verde";
+  if (estado === "critico" || estado === "alerta") return "rojo";
+  return "amarillo"; // en_tension
+}
+
+// Clasificación de un indicador para el orden de display
+export type Bucket = "fresco" | "manual" | "placeholder";
+export function bucketDeIndicador(ind: Indicador): Bucket {
+  if (ind.estado === "placeholder" || ind.valor === null) return "placeholder";
+  if (ind.desactualizado) return "manual";
+  return "fresco";
+}
+
+// Devuelve los indicadores de un cinturón ordenados: fresco → manual → placeholder
+export function indicadoresOrdenados(c: Cinturon): { key: string; ind: Indicador; bucket: Bucket }[] {
+  const orden: Record<Bucket, number> = { fresco: 0, manual: 1, placeholder: 2 };
+  return Object.entries(c.indicadores)
+    .map(([key, ind]) => ({ key, ind, bucket: bucketDeIndicador(ind) }))
+    .sort((a, b) => orden[a.bucket] - orden[b.bucket]);
+}
+
+// Etiquetas legibles por clave de indicador
+export const LABELS: Record<string, string> = {
+  // macro
+  ipc_total: "Inflación mensual (IPC)", reservas_bcra: "Reservas BCRA",
+  badlar: "Tasa BADLAR", emae_ia: "Actividad económica (EMAE i.a.)",
+  saldo_comercial_12m: "Saldo comercial 12m", recaudacion: "Recaudación tributaria",
+  tcrm: "Tipo de cambio real (TCRM)", rem_ipc_12m: "Expectativas inflación (REM 12m)",
+  prestamos_privados: "Préstamos al sector privado", base_monetaria: "Base monetaria",
+  tc_mayorista: "Tipo de cambio mayorista",
+  // politica
+  votometro_ventaja_lla: "Ventaja LLA−PJ (Votómetro)", ratio_dnu: "Ratio DNU / leyes",
+  movilizacion_cepa: "Tensión social (CEPA)", iaf_transferencias: "Armonía federal (transferencias)",
+  eficacia_legislativa: "Eficacia parlamentaria", cohesion_bloque: "Cohesión del bloque LLA",
+  gobernadores_alineamiento: "Alineamiento de gobernadores", veto_quorum: "Sesiones caídas por quórum",
+  comisiones_caidas: "Comisiones sin sanción",
+  // vida cotidiana (claves de publicar.py)
+  brecha_salario_cbt: "Salario real vs. canasta", ipc_alimentos: "Inflación de alimentos",
+  endeudamiento_familiar: "Endeudamiento de consumo", peso_tarifas: "Peso de tarifas (regulados)",
+  consumo_carne: "Consumo de carne per cápita", informalidad: "Informalidad laboral",
+  mortalidad_pymes: "Actividad industrial (IPI)", despacho_cemento: "Despacho de cemento (ISAC)",
+  pluriempleo: "Subocupación demandante", inseguridad: "Hechos delictivos (SNIC)",
+  icc_utdt: "Confianza del consumidor (ICC)", sentimiento_digital: "Sentimiento digital (Trends)",
+  patentamiento_motos: "Patentamiento de motos", desocupacion: "Desocupación",
+  // gestion
+  cepo_mulc: "Brecha cambiaria (cepo)", privatizaciones: "Privatizaciones",
+  concesiones_infraestructura: "Concesiones viales", reduccion_estado: "Reducción del Estado",
+  reestructuracion_organismos: "Reestructuración de organismos", rigi_inversiones: "Inversiones RIGI",
+  desregulacion_normativa: "Desregulación normativa", apertura_comercial: "Apertura comercial",
+  asistencia_directa: "Asistencia directa", fal_modernizacion_laboral: "Modernización laboral (FAL)",
+  libertad_opcion_salud: "Libertad de opción en salud", protocolo_antipiquetes: "Protocolo antipiquetes",
+};
+export function label(key: string): string {
+  return LABELS[key] ?? key.replace(/_/g, " ");
+}
+
+// Formato de valor: números con separador es-AR; strings tal cual; null → "—"
+const NF = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+export function formatValor(valor: unknown): string {
+  if (valor === null || valor === undefined) return "—";
+  if (typeof valor === "number") return NF.format(valor);
+  return String(valor);
+}
+
+// Aclaración chica para buckets no-frescos
+export function aclaracion(b: Bucket, ind: Indicador): string | null {
+  if (b === "placeholder") return "— pendiente";
+  if (b === "manual") return `dato a ${ind.fecha_dato}`;
+  return null;
+}
+
+// Conteo de cinturones "rojos" (para hero + tensión)
+export function cinturonesRojos(inf: Informe): number {
+  return Object.values(inf.cinturones).filter(c => verdictDeCinturon(c.estado) === "rojo").length;
+}

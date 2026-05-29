@@ -1,0 +1,50 @@
+---
+import { presentacion, label, visualDe, badgeEstado, series, formatValor } from "../lib/datos.ts";
+import { DESCRIPCIONES } from "../lib/descripciones.ts";
+import { chartPath } from "../lib/sparkline.ts";
+
+const { ikey, ind, slug } = Astro.props;
+const pres = presentacion(ikey, ind);
+const vis = visualDe(ikey, ind);
+const badge = badgeEstado(ind);
+const badgeCls = badge === "Automático" ? "auto" : badge === "Carga manual" ? "manual" : "estim";
+const desc = DESCRIPCIONES[ikey]?.que ?? "";
+
+// Cuando el visual es una barra de avance (gestión), el número grande es el
+// avance, para que el headline y la barra coincidan. En el resto, el valor normal.
+let headline = pres.texto;
+let unidad = pres.unidad;
+let micro = "";
+if (vis.tipo === "barra" && vis.avance) {
+  headline = formatValor(vis.pct);
+  unidad = "%";
+  micro = "avance";
+}
+
+const sp = vis.tipo === "sparkline" ? chartPath(series[ikey] ?? [], 240, 44, 5) : null;
+---
+<article class:list={["cg-tile", `cg-tile--${slug}`, "cg-ind--clickable"]} data-indicador={ikey}>
+  <div class="cg-tile-head">
+    <span class="cg-tile-name">{label(ikey)}</span>
+    <span class:list={["cg-tile-badge", badgeCls]}>{badge}</span>
+  </div>
+  {desc && <p class="cg-tile-desc">{desc}</p>}
+  <div class="cg-tile-value">
+    <span class="cg-tile-num">{headline}</span>
+    {unidad && <span class="cg-tile-unit">{unidad}</span>}
+    {micro && <span class="cg-tile-micro">{micro}</span>}
+  </div>
+  <div class:list={["cg-tile-vis", `cg-tile-vis--${slug}`]}>
+    {vis.tipo === "sparkline" && sp && !sp.vacio && (
+      <svg viewBox="0 0 240 44" width="100%" height="44" preserveAspectRatio="none" aria-hidden="true">
+        <path class="cg-spark-area" d={sp.area} />
+        <path class="cg-spark-line" d={sp.linea} />
+      </svg>
+    )}
+    {vis.tipo === "barra" && (
+      <div class="cg-bar" role="img" aria-label={`${vis.pct}%`}>
+        <div class="cg-bar-fill" style={`width:${vis.pct}%`}></div>
+      </div>
+    )}
+  </div>
+</article>

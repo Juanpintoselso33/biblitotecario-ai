@@ -166,6 +166,38 @@ export function cinturonesRojos(inf: Informe): number {
   return Object.values(inf.cinturones).filter(c => verdictDeCinturon(c.estado) === "rojo").length;
 }
 
+// Indicadores que representan un NIVEL en escala 0–100 (porcentaje de algo o
+// índice 0–100) y admiten una barra de progreso. Se excluyen variaciones
+// (% m/m, % i.a., % real), ratios y conteos, donde una barra 0–100 no aplica.
+export const BARRA_0_100 = new Set<string>([
+  "eficacia_legislativa", "cohesion_bloque", "gobernadores_alineamiento",
+  "veto_quorum", "comisiones_caidas", "movilizacion_cepa",
+  "informalidad", "pluriempleo", "sentimiento_digital", "icc_utdt",
+]);
+
+function clamp100(n: number): number { return Math.max(0, Math.min(100, n)); }
+
+export type Visual =
+  | { tipo: "sparkline" }
+  | { tipo: "barra"; pct: number; avance: boolean }
+  | { tipo: "numero" };
+
+// Decide el mejor visual para un indicador: serie histórica → sparkline;
+// avance de reforma o nivel 0–100 → barra; en otro caso → número grande.
+export function visualDe(key: string, ind: Indicador): Visual {
+  if (typeof ind.avance_pct === "number") return { tipo: "barra", pct: clamp100(ind.avance_pct), avance: true };
+  if ((series[key] ?? []).length >= 2) return { tipo: "sparkline" };
+  if (BARRA_0_100.has(key) && typeof ind.valor === "number") return { tipo: "barra", pct: clamp100(ind.valor), avance: false };
+  return { tipo: "numero" };
+}
+
+// Badge honesto del origen del dato.
+export function badgeEstado(ind: Indicador): "Automático" | "Carga manual" | "Estimación" {
+  if (ind.estado === "placeholder" || ind.valor === null) return "Estimación";
+  if (ind.desactualizado) return "Carga manual";
+  return "Automático";
+}
+
 // ── Helpers para las páginas de detalle por cinturón ──────────────────
 export type CinturonMeta = (typeof CINTURONES)[number];
 

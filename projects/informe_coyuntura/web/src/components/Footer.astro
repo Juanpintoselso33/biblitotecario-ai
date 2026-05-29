@@ -36,6 +36,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         </div>
     </div>
     <div class="cg-foot-legal">
-        © 2026 Fundación CiGob · Observatorio independiente de indicadores públicos · Datos generados: <span id="cg-foot-time">{informe.generated_at}</span>
+        © 2026 Fundación CiGob · Observatorio independiente de indicadores públicos · Datos generados: <span id="cg-foot-time">{informe.generated_at.slice(0, 10)}</span>
     </div>
 </footer>

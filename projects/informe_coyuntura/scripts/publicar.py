@@ -87,6 +87,17 @@ def build_series():
                 series.setdefault(ind, []).append({"fecha": row["fecha"], "valor": val})
     for ind in series:
         series[ind].sort(key=lambda p: p["fecha"])
+    # Alias: algunos indicadores del informe tienen su serie historica bajo otra
+    # clave en los CSV. Exponer la serie tambien bajo la clave del indicador para
+    # que el sparkline y el modal la encuentren.
+    alias = {
+        "despacho_cemento": "isac_construccion",
+        "peso_tarifas": "ipc_regulados",
+        "saldo_comercial_12m": "saldo_comercial",
+    }
+    for ind_key, serie_key in alias.items():
+        if serie_key in series and ind_key not in series:
+            series[ind_key] = series[serie_key]
     return series
 
 

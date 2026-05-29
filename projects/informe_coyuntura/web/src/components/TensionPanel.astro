@@ -1,0 +1,25 @@
+---
+import { informe, CINTURONES, verdictDeCinturon, cinturonesRojos } from "../lib/datos.ts";
+const rojos = cinturonesRojos(informe);
+---
+<div class="cg-panel" id="cg-tension">
+  <p class="cg-eyebrow">Tensión sistémica</p>
+  <h3>Riesgo dominante: {informe.barbarismo_activo}</h3>
+  <div class="cg-matriz">
+    {CINTURONES.map(c => {
+      const v = verdictDeCinturon(informe.cinturones[c.key].estado);
+      const color = v === "rojo" ? "var(--rojo)" : v === "amarillo" ? "var(--amarillo)" : "var(--verde)";
+      return (
+        <span class="cg-matriz-item">
+          <span class="cg-dot" style={`background:${color}`}></span>
+          {c.nombre} · {informe.cinturones[c.key].barbarismo_riesgo}
+        </span>
+      );
+    })}
+  </div>
+  <div class="cg-tension-rule">
+    Regla de lectura: <strong>1 cinturón en rojo</strong> es manejable;
+    <strong>2 o más</strong> indican inestabilidad sistémica con crisis que se retroalimentan.
+    Actualmente: <strong>{rojos} en rojo</strong>.
+  </div>
+</div>

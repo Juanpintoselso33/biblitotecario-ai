@@ -1,0 +1,14 @@
+---
+import { informe } from "../lib/datos.ts";
+---
+<section class="cg-section cg-bluf" id="snapshot">
+  <p class="cg-eyebrow">La lectura del mes</p>
+  <h2 class="cg-h2">Argentina · {informe.period}</h2>
+  <p class="cg-bluf-meta">
+    <strong>Score global {informe.score_global}/10</strong> ·
+    <strong>Riesgo dominante: {informe.barbarismo_activo}</strong>
+  </p>
+  <p class="cg-bluf-text">
+    <em style="font-style:normal;color:var(--muted);">[Resumen editorial del mes — pendiente de redacción.]</em>
+  </p>
+</section>

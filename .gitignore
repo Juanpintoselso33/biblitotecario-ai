@@ -99,3 +99,6 @@ TODO_AI.md
 
 # Referencia de captura de klipea (no versionar binarios/HTML ajeno)
 projects/informe_coyuntura/web/reference/
+
+# Build output del informe (CI lo regenera desde Astro)
+web/informe/

@@ -12,14 +12,15 @@ const info: Record<string, unknown> = {};
 for (const [ckey, c] of Object.entries(informe.cinturones)) {
   for (const [ikey, ind] of Object.entries(c.indicadores)) {
     const p = presentacion(ikey, ind);
-    const d = DESCRIPCIONES[ikey] ?? { que: "", aporta: "" };
+    const d = DESCRIPCIONES[ikey] ?? { que: "", aporta: "", frecuencia: "—", tipo: "—" };
     const estado = ind.estado === "placeholder"
-      ? "Dato pendiente de carga"
+      ? "Estimación"
       : ind.desactualizado ? "Carga manual" : "Automático";
     info[ikey] = {
       label: label(ikey), cinturon: CINT_NOMBRE[ckey] ?? ckey,
       que: d.que, aporta: d.aporta,
-      valor: p.texto, unidad: p.unidad,
+      valor: p.texto, unidad: p.unidad, unidadLarga: ind.unidad ?? "—",
+      frecuencia: d.frecuencia, tipo: d.tipo,
       fuente: ind.fuente ?? "", fecha: ind.fecha_dato ?? "", estado,
     };
   }
@@ -67,10 +68,18 @@ const seriesJson = JSON.stringify(series);
       aporta.innerHTML = d.aporta ? `<strong>Qué aporta al cinturón:</strong> ${esc(d.aporta)}` : "";
       aporta.style.display = d.aporta ? "" : "none";
 
+      const fuenteCorta = d.fuente && /^https?:\/\//.test(d.fuente)
+        ? d.fuente.replace(/^https?:\/\//, "").replace(/\/.*$/, "")
+        : (d.fuente || "—");
+      const celda = (rotulo, valor, titulo) =>
+        `<div><dt>${rotulo}</dt><dd${titulo ? ` title="${esc(titulo)}"` : ""}>${esc(valor)}</dd></div>`;
       document.getElementById("cg-modal-ficha").innerHTML =
-        `<div><dt>Último valor</dt><dd>${esc(d.valor)} ${esc(d.unidad)}</dd></div>` +
-        `<div><dt>Actualización</dt><dd>${esc(d.fecha || "—")} · ${esc(d.estado)}</dd></div>` +
-        `<div><dt>Fuente</dt><dd>${esc(d.fuente || "—")}</dd></div>`;
+        celda("Último valor", `${d.valor} ${d.unidad}`.trim()) +
+        celda("Unidad", d.unidadLarga || "—") +
+        celda("Frecuencia", d.frecuencia || "—") +
+        celda("Tipo de dato", d.tipo || "—") +
+        celda("Actualización", `${d.fecha || "—"} · ${d.estado}`) +
+        celda("Fuente", fuenteCorta, d.fuente);
 
       const serieH = document.getElementById("cg-modal-serie-h");
       const sub = document.getElementById("cg-modal-sub");

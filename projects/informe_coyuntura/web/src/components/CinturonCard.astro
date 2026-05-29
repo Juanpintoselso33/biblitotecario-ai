@@ -1,0 +1,25 @@
+---
+import { verdictDeCinturon, indicadoresOrdenados } from "../lib/datos.ts";
+import IndicadorRow from "./IndicadorRow.astro";
+const { slug, nombre, sub, cinturon } = Astro.props;
+const verdict = verdictDeCinturon(cinturon.estado);
+const verdictLabel = { verde: "Estable", amarillo: "En tensión", rojo: "Crítico" }[verdict];
+const filas = indicadoresOrdenados(cinturon);
+---
+<article class:list={["cg-cint", `cg-cint--${slug}`]}>
+  <div class="cg-cint-head">
+    <div class="cg-cint-titles">
+      <div class="cg-cint-sub">{sub}</div>
+      <div class="cg-cint-name">{nombre}</div>
+    </div>
+    <span class:list={["cg-verdict", verdict]}>
+      <span class="cg-verdict-dot"></span>{verdictLabel}
+    </span>
+  </div>
+  <ul class="cg-ind-list">
+    {filas.map(({ key, ind, bucket }) => <IndicadorRow ikey={key} ind={ind} bucket={bucket} />)}
+  </ul>
+  <div class="cg-cint-foot">
+    Score <strong>{cinturon.score}/10</strong> · riesgo {cinturon.barbarismo_riesgo}
+  </div>
+</article>

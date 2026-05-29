@@ -4,7 +4,7 @@ Lee output/informe.json + el ultimo vida_cotidiana_*.json + output/series/*.csv
 y escribe web/src/data/informe.json (con vida cotidiana enriquecido a ~13
 indicadores automaticos) y web/src/data/series.json.
 """
-import csv, glob, json, os, sys
+import csv, glob, json, os, re, sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -90,6 +90,21 @@ def build_series():
     return series
 
 
+_LOCAL_PATH = re.compile(r"^[A-Za-z]:[\\/]|[\\/]Users[\\/]|\\\\")
+
+
+def sanitizar_fuentes(informe):
+    """Reemplaza rutas locales del filesystem en los campos `fuente` para no
+    filtrar paths del equipo en el snapshot publico ni en la lista de fuentes."""
+    for cint in informe["cinturones"].values():
+        for key, ind in cint["indicadores"].items():
+            fuente = ind.get("fuente")
+            if isinstance(fuente, str) and _LOCAL_PATH.search(fuente):
+                ind["fuente"] = ("Votómetro CIGOB" if "votometro" in key.lower()
+                                 else "Elaboración propia — CIGOB")
+    return informe
+
+
 def main():
     informe = json.loads((OUT / "informe.json").read_text(encoding="utf-8"))
 
@@ -100,6 +115,8 @@ def main():
         if enriquecido:
             informe["cinturones"]["vida_cotidiana"]["indicadores"] = enriquecido
             informe["cinturones"]["vida_cotidiana"]["fuente_enriquecida"] = os.path.basename(vida_files[-1])
+
+    informe = sanitizar_fuentes(informe)
 
     (DATA / "informe.json").write_text(
         json.dumps(informe, ensure_ascii=False, indent=2), encoding="utf-8")

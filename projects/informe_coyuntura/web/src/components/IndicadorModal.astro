@@ -1,39 +1,91 @@
 ---
-import { series, label } from "../lib/datos.ts";
+import { informe, series, label, presentacion } from "../lib/datos.ts";
+import { DESCRIPCIONES } from "../lib/descripciones.ts";
+
+const CINT_NOMBRE: Record<string, string> = {
+  macro: "Macroeconomía", politica: "Política",
+  vida_cotidiana: "Vida cotidiana", gestion: "Gestión",
+};
+
+// Ficha por indicador: todo lo que el modal necesita, embebido como JSON.
+const info: Record<string, unknown> = {};
+for (const [ckey, c] of Object.entries(informe.cinturones)) {
+  for (const [ikey, ind] of Object.entries(c.indicadores)) {
+    const p = presentacion(ikey, ind);
+    const d = DESCRIPCIONES[ikey] ?? { que: "", aporta: "" };
+    const estado = ind.estado === "placeholder"
+      ? "Dato pendiente de carga"
+      : ind.desactualizado ? "Carga manual" : "Automático";
+    info[ikey] = {
+      label: label(ikey), cinturon: CINT_NOMBRE[ckey] ?? ckey,
+      que: d.que, aporta: d.aporta,
+      valor: p.texto, unidad: p.unidad,
+      fuente: ind.fuente ?? "", fecha: ind.fecha_dato ?? "", estado,
+    };
+  }
+}
+const infoJson = JSON.stringify(info);
 const seriesJson = JSON.stringify(series);
-const labelsJson = JSON.stringify(
-  Object.fromEntries(Object.keys(series).map(k => [k, label(k)]))
-);
 ---
 <div class="cg-modal" id="cg-modal" hidden>
   <div class="cg-modal-card">
     <button class="cg-modal-close" id="cg-modal-close" aria-label="Cerrar">×</button>
     <p class="cg-eyebrow" id="cg-modal-eyebrow">Indicador</p>
     <h3 class="cg-modal-title" id="cg-modal-title"></h3>
+    <p class="cg-modal-desc" id="cg-modal-que"></p>
+    <div class="cg-modal-aporta" id="cg-modal-aporta"></div>
+    <dl class="cg-modal-ficha" id="cg-modal-ficha"></dl>
+    <h4 class="cg-modal-h4" id="cg-modal-serie-h">Evolución histórica</h4>
     <p class="cg-modal-sub" id="cg-modal-sub"></p>
     <table class="cg-modal-table" id="cg-modal-table"></table>
   </div>
 </div>
+<script type="application/json" id="cg-info-data" set:html={infoJson}></script>
 <script type="application/json" id="cg-series-data" set:html={seriesJson}></script>
-<script type="application/json" id="cg-labels-data" set:html={labelsJson}></script>
 <script>
+  const INFO = JSON.parse(document.getElementById("cg-info-data").textContent);
   const SERIES = JSON.parse(document.getElementById("cg-series-data").textContent);
-  const LABELS = JSON.parse(document.getElementById("cg-labels-data").textContent);
   const modal = document.getElementById("cg-modal");
+  const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const close = () => modal.setAttribute("hidden", "");
   document.getElementById("cg-modal-close").addEventListener("click", close);
   modal.addEventListener("click", e => { if (e.target === modal) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+
   document.querySelectorAll(".cg-ind--clickable[data-indicador]").forEach(li => {
     li.addEventListener("click", () => {
       const key = li.getAttribute("data-indicador");
+      const d = INFO[key] || { label: key, cinturon: "", que: "", aporta: "", valor: "—", unidad: "", fuente: "", fecha: "", estado: "" };
       const serie = SERIES[key] || [];
-      document.getElementById("cg-modal-title").textContent = LABELS[key] || key;
-      document.getElementById("cg-modal-sub").textContent =
-        serie.length ? `${serie.length} datos históricos` : "Sin serie histórica disponible";
-      const rows = serie.slice(-12).reverse()
-        .map(p => `<tr><td>${p.fecha}</td><td>${p.valor.toLocaleString("es-AR")}</td></tr>`).join("");
-      document.getElementById("cg-modal-table").innerHTML =
-        serie.length ? `<thead><tr><th>Fecha</th><th>Valor</th></tr></thead><tbody>${rows}</tbody>` : "";
+
+      document.getElementById("cg-modal-eyebrow").textContent = d.cinturon ? `Indicador · ${d.cinturon}` : "Indicador";
+      document.getElementById("cg-modal-title").textContent = d.label;
+      document.getElementById("cg-modal-que").textContent = d.que;
+
+      const aporta = document.getElementById("cg-modal-aporta");
+      aporta.innerHTML = d.aporta ? `<strong>Qué aporta al cinturón:</strong> ${esc(d.aporta)}` : "";
+      aporta.style.display = d.aporta ? "" : "none";
+
+      document.getElementById("cg-modal-ficha").innerHTML =
+        `<div><dt>Último valor</dt><dd>${esc(d.valor)} ${esc(d.unidad)}</dd></div>` +
+        `<div><dt>Actualización</dt><dd>${esc(d.fecha || "—")} · ${esc(d.estado)}</dd></div>` +
+        `<div><dt>Fuente</dt><dd>${esc(d.fuente || "—")}</dd></div>`;
+
+      const serieH = document.getElementById("cg-modal-serie-h");
+      const sub = document.getElementById("cg-modal-sub");
+      const table = document.getElementById("cg-modal-table");
+      if (serie.length) {
+        serieH.style.display = "";
+        sub.textContent = `${serie.length} datos · se muestran los últimos ${Math.min(12, serie.length)}`;
+        const rows = serie.slice(-12).reverse()
+          .map(p => `<tr><td>${esc(p.fecha)}</td><td>${nf.format(p.valor)}</td></tr>`).join("");
+        table.innerHTML = `<thead><tr><th>Fecha</th><th>Valor</th></tr></thead><tbody>${rows}</tbody>`;
+      } else {
+        serieH.style.display = "none";
+        sub.textContent = "Sin serie histórica disponible para este indicador.";
+        table.innerHTML = "";
+      }
       modal.removeAttribute("hidden");
     });
   });

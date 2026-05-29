@@ -175,20 +175,21 @@ SCORING = {
     "sentimiento_digital": (lambda v: v / 10,           "0 → 0 · 50 → 5 · 100 → 10 (interés en inflación/precios/inseguridad/trabajo: mayor = más preocupación)"),
     "inseguridad":         (lambda v: (v / POB_AR * 100_000 - 3000) / 400,
                                                         "tasa/100k hab (pob. 46,7M): 3.000 → 0 · 5.000 → 5 · 7.000 → 10"),
+    # Se puntúa sobre la variación interanual REAL (deflactada), no el stock nominal.
+    "endeudamiento_familiar": (lambda v: 5 + v / 4,     "−20% real → 0 · 0% → 5 · +20% real → 10 (var. interanual real del crédito)", "var_real_12m"),
 }
 
 GESTION_MAPA = ("10 × (1 − avance/100): a mayor avance ejecutado, menor tensión. "
                 "100% → 0 · 50% → 5 · 0% → 10.")
 
-VIDA_CONTEXTO = ("Indicador de contexto. Es un stock nominal (sin deflactar ni normalizar por "
-                 "ingreso), por lo que su nivel absoluto no se traduce a una tensión comparable; "
-                 "se muestra como referencia y no incide en el score del cinturón.")
+VIDA_CONTEXTO = ("Indicador de contexto. No se pudo calcular su variación interanual real "
+                 "(falta la serie de crédito), por lo que no incide en el score en esta corrida.")
 
 SCORE_EXPLICACION = {
     "macro":          "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión macroeconómica.",
     "politica":       "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión en el capital político.",
     "gestion":        "Promedio simple de la tensión de sus 12 reformas: a mayor avance ejecutado, menor tensión.",
-    "vida_cotidiana": "Promedio simple de la tensión (0–10) de 12 indicadores con fórmula validada. El endeudamiento de consumo se muestra como contexto (stock nominal, no incide).",
+    "vida_cotidiana": "Promedio simple de la tensión (0–10) de sus indicadores con fórmula validada. Mayor = más tensión en el bolsillo y la calle.",
 }
 
 
@@ -230,11 +231,19 @@ def aplicar_scoring(informe):
         c["score_explicacion"] = SCORE_EXPLICACION.get(ckey, "")
         for ikey, ind in c["indicadores"].items():
             aporte = formula = nota = None
-            valor = ind.get("valor")
             avance = ind.get("avance_pct")
-            if ikey in SCORING and isinstance(valor, (int, float)):
-                fn, formula = SCORING[ikey]
-                aporte = _clamp10(fn(float(valor)))
+            if ikey in SCORING:
+                spec = SCORING[ikey]
+                fn, mapa = spec[0], spec[1]
+                campo = spec[2] if len(spec) > 2 else "valor"   # input alternativo
+                entrada = ind.get(campo)
+                if isinstance(entrada, (int, float)):
+                    aporte = _clamp10(fn(float(entrada)))
+                    formula = mapa
+                    if campo == "var_real_12m":                  # mostrar el input real, no el stock
+                        ind["aporte_input_txt"] = f"{entrada:+.1f}% interanual real".replace(".", ",")
+                elif ckey == "vida_cotidiana":
+                    nota = VIDA_CONTEXTO                          # input ausente → contexto
             elif isinstance(avance, (int, float)):
                 aporte = _clamp10(10.0 * (1.0 - float(avance) / 100.0))
                 formula = GESTION_MAPA
@@ -246,16 +255,44 @@ def aplicar_scoring(informe):
     return informe
 
 
+def _val_en(serie, objetivo_ym):
+    """Último valor de `serie` (lista {fecha, valor}) con mes <= objetivo (YYYY-MM)."""
+    cand = [d for d in serie if d["fecha"][:7] <= objetivo_ym]
+    return cand[-1]["valor"] if cand else (serie[0]["valor"] if serie else None)
+
+
+def var_real_credito_12m(cc_serie, ipc_serie):
+    """Variación interanual REAL del crédito de consumo, deflactada por IPC.
+    Ancla al último mes de IPC disponible para comparar exactamente el mismo
+    período en ambas series. Devuelve % real o None si faltan datos."""
+    if not cc_serie or not ipc_serie:
+        return None
+    anchor = ipc_serie[-1]["fecha"][:7]                  # ej '2026-03'
+    prev = f"{int(anchor[:4]) - 1}{anchor[4:]}"          # mismo mes, año previo
+    cc_now, cc_old = _val_en(cc_serie, anchor), _val_en(cc_serie, prev)
+    ipc_now, ipc_old = ipc_serie[-1]["valor"], _val_en(ipc_serie, prev)
+    if not all(isinstance(x, (int, float)) and x for x in (cc_now, cc_old, ipc_now, ipc_old)):
+        return None
+    return round(((cc_now / cc_old) / (ipc_now / ipc_old) - 1) * 100, 1)
+
+
 def main():
     informe = json.loads((OUT / "informe.json").read_text(encoding="utf-8"))
+    series = build_series()
 
     vida_files = sorted(glob.glob(str(ROOT / "scripts" / "vida_cotidiana" / "data" / "vida_cotidiana_*.json")))
     if vida_files:
         raw = json.loads(Path(vida_files[-1]).read_text(encoding="utf-8"))
         enriquecido = build_vida(raw)
         if enriquecido:
-            informe["cinturones"]["vida_cotidiana"]["indicadores"] = enriquecido
-            informe["cinturones"]["vida_cotidiana"]["fuente_enriquecida"] = os.path.basename(vida_files[-1])
+            vida = informe["cinturones"]["vida_cotidiana"]
+            vida["indicadores"] = enriquecido
+            vida["fuente_enriquecida"] = os.path.basename(vida_files[-1])
+            # Endeudamiento: scoreable vía variación interanual real del crédito.
+            real = var_real_credito_12m(
+                raw.get("bcra", {}).get("credito_consumo_serie"), series.get("ipc_total"))
+            if real is not None and "endeudamiento_familiar" in enriquecido:
+                enriquecido["endeudamiento_familiar"]["var_real_12m"] = real
 
     informe = sanitizar_fuentes(informe)
     informe = aplicar_scoring(informe)
@@ -264,7 +301,7 @@ def main():
     (DATA / "informe.json").write_text(
         json.dumps(informe, ensure_ascii=False, indent=2), encoding="utf-8")
     (DATA / "series.json").write_text(
-        json.dumps(build_series(), ensure_ascii=False, indent=2), encoding="utf-8")
+        json.dumps(series, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Snapshot escrito en {DATA}")
 
 

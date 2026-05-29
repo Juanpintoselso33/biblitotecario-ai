@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "generated_at": "2026-05-23T12:47:45.390782",
   "period": "2026-05",
-  "score_global": 4.0,
+  "score_global": 4.1,
   "cinturones": {
     "macro": {
       "score": 2.1,
@@ -250,7 +250,7 @@
       "score_explicacion": "Promedio simple de la tensión (0–10) de sus indicadores. Mayor = más tensión en el capital político."
     },
     "vida_cotidiana": {
-      "score": 4.2,
+      "score": 4.4,
       "estado": "en_tension",
       "barbarismo_riesgo": "político",
       "indicadores": {
@@ -275,14 +275,16 @@
           "aporte_nota": null
         },
         "endeudamiento_familiar": {
-          "valor": 43.56,
+          "valor": 44.08,
           "unidad": "billones de pesos (consumo)",
           "fuente": "BCRA API v4.0",
-          "fecha_dato": "2026-05-19",
+          "fecha_dato": "2026-05-22",
           "desactualizado": false,
-          "aporte_score": null,
-          "aporte_formula": null,
-          "aporte_nota": "Indicador de contexto. Es un stock nominal (sin deflactar ni normalizar por ingreso), por lo que su nivel absoluto no se traduce a una tensión comparable; se muestra como referencia y no incide en el score del cinturón."
+          "var_real_12m": 8.3,
+          "aporte_input_txt": "+8,3% interanual real",
+          "aporte_score": 7.1,
+          "aporte_formula": "−20% real → 0 · 0% → 5 · +20% real → 10 (var. interanual real del crédito)",
+          "aporte_nota": null
         },
         "peso_tarifas": {
           "valor": 5.08,
@@ -387,7 +389,7 @@
       },
       "alerta": null,
       "fuente_enriquecida": "vida_cotidiana_20260525_2040.json",
-      "score_explicacion": "Promedio simple de la tensión (0–10) de 12 indicadores con fórmula validada. El endeudamiento de consumo se muestra como contexto (stock nominal, no incide)."
+      "score_explicacion": "Promedio simple de la tensión (0–10) de sus indicadores con fórmula validada. Mayor = más tensión en el bolsillo y la calle."
     },
     "gestion": {
       "score": 5.8,

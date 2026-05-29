@@ -53,6 +53,17 @@ def _variacion_mensual(id_variable: int) -> dict:
     }
 
 
+def _serie_mensual(id_variable: int, meses: int = 15) -> list[dict]:
+    """Última observación de cada mes para los últimos `meses` meses.
+    Permite computar la variación interanual real del crédito aguas abajo."""
+    desde = (datetime.today() - timedelta(days=meses * 31)).strftime("%Y-%m-%d")
+    detalle = _get_variable(id_variable, desde=desde, limit=500)
+    por_mes: dict = {}
+    for d in sorted(detalle, key=lambda x: x["fecha"]):
+        por_mes[d["fecha"][:7]] = d          # la última del mes pisa a las previas
+    return [{"fecha": v["fecha"], "valor": v["valor"]} for _, v in sorted(por_mes.items())]
+
+
 def fetch_bcra() -> dict:
     """
     Recolecta indicadores de crédito y endeudamiento del BCRA.
@@ -90,6 +101,18 @@ def fetch_bcra() -> dict:
             "unidad": "millones_pesos",
             "nota": "Tarjeta + personales. Proxy de endeudamiento familiar de consumo.",
         }
+        # Serie mensual (tarjeta + personales) para la variación interanual real.
+        try:
+            per = _serie_mensual(BCRA_VARIABLES["prestamos_personales"])
+            tar = _serie_mensual(BCRA_VARIABLES["prestamos_tarjeta"])
+            tmap = {p["fecha"][:7]: p["valor"] for p in tar}
+            serie = [{"fecha": p["fecha"], "valor": p["valor"] + tmap[p["fecha"][:7]]}
+                     for p in per if p["fecha"][:7] in tmap]
+            if serie:
+                results["credito_consumo_serie"] = serie
+                logger.info("BCRA credito_consumo_serie OK: %d meses", len(serie))
+        except Exception as e:
+            logger.error("BCRA credito_consumo_serie FAIL: %s", e)
 
     # Tasa BADLAR (costo de financiamiento — contexto)
     try:

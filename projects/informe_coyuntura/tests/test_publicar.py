@@ -58,13 +58,21 @@ def test_score_global_reconcilia_con_pesos():
         f"global {informe['score_global']} != ponderado {esperado}"
 
 
-def test_vida_doce_aportan_endeudamiento_es_contexto():
-    """Vida: 12 indicadores con fórmula entran al score; sólo el endeudamiento
-    (stock nominal) queda como contexto."""
+def test_vida_indicadores_aportan_al_score():
+    """Vida: al menos 12 de 13 indicadores entran al score con fórmula."""
     informe = json.loads((DATA / "informe.json").read_text(encoding="utf-8"))
     vida = informe["cinturones"]["vida_cotidiana"]["indicadores"]
     con_aporte = [k for k, i in vida.items() if i.get("aporte_score") is not None]
-    contexto = [k for k, i in vida.items()
-                if i.get("aporte_score") is None and i.get("aporte_nota")]
-    assert len(con_aporte) == 12, f"vida: {len(con_aporte)} con aporte (esperado 12)"
-    assert contexto == ["endeudamiento_familiar"], f"contexto inesperado: {contexto}"
+    assert len(con_aporte) >= 12, f"vida: sólo {len(con_aporte)} con aporte"
+
+
+def test_endeudamiento_se_puntua_por_variacion_real():
+    """Endeudamiento se puntúa sobre su variación interanual real (no el stock
+    nominal): debe tener var_real_12m y un aporte derivado de ella."""
+    informe = json.loads((DATA / "informe.json").read_text(encoding="utf-8"))
+    end = informe["cinturones"]["vida_cotidiana"]["indicadores"]["endeudamiento_familiar"]
+    assert isinstance(end.get("var_real_12m"), (int, float)), "falta var_real_12m"
+    assert end.get("aporte_score") is not None, "endeudamiento sin aporte"
+    # tensión = clamp(5 + var_real/4)
+    esperado = max(0.0, min(10.0, round(5 + end["var_real_12m"] / 4, 1)))
+    assert abs(end["aporte_score"] - esperado) <= 0.1

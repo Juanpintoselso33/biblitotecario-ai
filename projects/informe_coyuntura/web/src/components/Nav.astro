@@ -1,0 +1,20 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+<nav class="cg-nav">
+  <div class="cg-nav-inner">
+    <a class="cg-nav-brand" href="#top">
+      <span class="cg-nav-logo"><img src={`${base}/logo-cigob.png`} alt="CiGob" /></span>
+      <span class="cg-nav-titles">
+        <span class="cg-nav-title">Realidad Política Argentina</span>
+        <span class="cg-nav-sub">Observatorio mensual · Fundación CiGob</span>
+      </span>
+    </a>
+    <div class="cg-nav-links">
+      <a href="#snapshot">Mes actual</a>
+      <a href="#evolucion">Evolución</a>
+      <a href="#archivo">Archivo</a>
+      <a href="#metodologia">Metodología</a>
+    </div>
+  </div>
+</nav>
